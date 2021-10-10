@@ -57,12 +57,13 @@
         <div class="column is-hidden-mobile">
           <h1 class="title" style="color:#ff85c2">
             Gephisto
-            
-            <span class="is-hidden-tablet">mobile</span>
+
+            <!-- Test stuff -->
+            <!-- <span class="is-hidden-tablet">mobile</span>
             <span class="is-hidden-mobile is-hidden-desktop">tablet</span>
             <span class="is-hidden-mobile is-hidden-tablet-only is-hidden-widescreen">desktop</span>
             <span class="is-hidden-mobile is-hidden-tablet-only is-hidden-desktop-only is-hidden-fullhd">widescreen</span>
-            <span class="is-hidden-mobile is-hidden-tablet-only is-hidden-desktop-only is-hidden-widescreen-only">full HD</span>
+            <span class="is-hidden-mobile is-hidden-tablet-only is-hidden-desktop-only is-hidden-widescreen-only">full HD</span> -->
 
           </h1>
           <p class="subtitle">
@@ -75,39 +76,35 @@
           </div>
           <div class="box" style="min-height: 300px;">
             <!-- UPLOAD STATE -->
-            <template v-if="!file">
-              <section>
-                <b-field>
-                  <b-upload
-                    v-model="file"
-                    expanded
-                    v-on:input="uploadFile"
-                    drag-drop>
-                    <section class="section">
-                      <div class="content has-text-centered">
-                        <p>
-                          <b-icon
-                            icon="upload"
-                            size="is-large">
-                          </b-icon>
-                        </p>
-                        <p>
-                          Drop your GEXF here
-                          <br>or click to upload
-                        </p>
-                      </div>
-                    </section>
-                  </b-upload>
-                </b-field>
-              </section>
-            </template>
+            <b-field v-if="!file && !waitingState">
+              <b-upload
+                v-model="file"
+                expanded
+                v-on:input="uploadFile"
+                drag-drop>
+                <section class="section">
+                  <div class="content has-text-centered">
+                    <p>
+                      <b-icon
+                        icon="upload"
+                        size="is-large">
+                      </b-icon>
+                    </p>
+                    <p>
+                      Drop your GEXF here
+                      <br>or click to upload
+                    </p>
+                  </div>
+                </section>
+              </b-upload>
+            </b-field>
 
             <!-- CONFIRMATION STATE -->
-            <div v-if="file">
+            <div v-if="file && !waitingState">
               <div class="block">
                 <p>
-                  We, the all-powerful Gephisto, have today accepted the pact of alliance with <code>User</code>.
-                  We promise to make the best decisions to provide a nice network map.
+                  We, the all-powerful Gephisto, have today accepted the pact with <code>User</code>.
+                  We are committed to making all the choices a network map implies.
                 </p>
               </div>
               <div class="block">
@@ -123,14 +120,19 @@
                 </p>
               </div>
               <div class="block">
-                <template>
-                  <section>
-                    <b-button @click="acceptPact"
-                      class="button is-large is-fullwidth is-primary is-focused">
-                      OK &nbsp;<i style="opacity:0.6">(sign)</i>
-                    </b-button>
-                  </section>
-              </template>
+                <b-button @click="acceptPact"
+                  class="button is-large is-fullwidth is-success is-focused">
+                  OK &nbsp;<i style="opacity:0.6">(sign)</i>
+                </b-button>
+              </div>
+            </div>
+
+            <!-- WAITING STATE -->
+            <div v-if="waitingState">
+              <div class="block">
+                <p>
+                  Please wait!
+                </p>
               </div>
             </div>
           </div>
@@ -139,8 +141,23 @@
         </div>
       </div>
     </div>
+
+    <!-- WAITING MODAL -->
+    <b-modal v-model="waitingModalActive" :width="480" scroll="keep" can-cancel="false">
+      <div class="card">
+        <div class="card-image">
+            <figure class="image is-1by1">
+                <img src="img/wait.png" alt="Image">
+            </figure>
+        </div>
+        <div class="card-content">
+          <div class="content">
+            <strong>You need to wait, but don't worry!</strong> Your browser is computing hard. This tab may freeze for some time: that is normal.
+          </div>
+        </div>
+      </div>
+    </b-modal>
   </section>
-  
 
   <!-- SCRIPTS (DEV ONLY) -->
   <script src="https://cdn.jsdelivr.net/npm/vue@2/dist/vue.js"></script>

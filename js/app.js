@@ -4,14 +4,13 @@ var app = new Vue({
   el: '#app',
   data: {
 		file: undefined,
+		waitingModalActive: false,
 		waitingState: false
   },
   methods: {
   	uploadFile: f => {
-  		console.log("TEST", f)
   		if (f.name.split('.').pop().toLowerCase() == "gexf") {
   			console.log("Proceed")
-  			app.waitingState = true
   		} else {
   			app.file = undefined
   			alert("/!\\ Only GEXF files are accepted.")
@@ -19,6 +18,8 @@ var app = new Vue({
   	},
   	acceptPact: () => {
   		console.log("OK")
+  		app.waitingModalActive = true
+  		app.waitingState = true
   	}
   }
 })
