@@ -20,7 +20,7 @@
   <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
   <link rel="manifest" href="/site.webmanifest">
 
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@0.9.3/css/bulma.min.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@mdi/font@5.8.55/css/materialdesignicons.min.css">
   <link rel="stylesheet" href="https://unpkg.com/buefy/dist/buefy.min.css">
 
   <style>
@@ -29,21 +29,22 @@
       position: relative;
     }
     .gephisto-hipster img{
-      min-height: 500px;
       max-height: 500px;
-      top: 70px;
+      width:  auto;
+      top: 100px;
       right: -115px;
       position: absolute;
+      z-index: 10;
     }
   </style>
 </head>
 
 <body>
-  <section class="section">
+  <section class="section" id="app">
     <div class="container">
       <div class="columns">
         <div class="column">
-          <div class="gephisto-hipster">
+          <div class="gephisto-hipster is-hidden-mobile is-unselectable">
             <img src="img/gephisto-hipster.png">
           </div>
           <h1 class="title" style="color:#ff85c2">
@@ -53,9 +54,34 @@
             Makes a <strong>network map</strong> in one click.
           </p>
         </div>
-        <div class="column is-two-fifths">
-          <div class="box" style="min-height: 300px;">
-            lol
+        <div class="column is-three-fifths">
+          <div class="box has-text-centered" style="min-height: 300px;">
+            <template>
+              <section>
+                <b-field>
+                  <b-upload
+                    v-model="file"
+                    expanded
+                    v-on:input="test"
+                    drag-drop>
+                    <section class="section">
+                      <div class="content has-text-centered">
+                        <p>
+                          <b-icon
+                            icon="upload"
+                            size="is-large">
+                          </b-icon>
+                        </p>
+                        <p>
+                          Drop your GEXF here
+                          <br>or click to upload
+                        </p>
+                      </div>
+                    </section>
+                  </b-upload>
+                </b-field>
+              </section>
+            </template>
           </div>
         </div>
       </div>
@@ -63,13 +89,14 @@
   </section>
   
 
-  <!-- SCRIPTS -->
-  <script src="https://unpkg.com/buefy/dist/buefy.min.js"></script>
   <!-- SCRIPTS (DEV ONLY) -->
   <script src="https://cdn.jsdelivr.net/npm/vue@2/dist/vue.js"></script>
   <!-- SCRIPTS (PROD ONLY) -->
   <!--
   <script src="https://cdn.jsdelivr.net/npm/vue@2.6.0"></script>
   -->
+  <!-- SCRIPTS -->
+  <script src="https://unpkg.com/buefy/dist/buefy.min.js"></script>
+  <script src="js/app.js"></script>
 </body>
 </html>
