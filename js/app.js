@@ -11,7 +11,8 @@ var app = new Vue({
   data: {
 		file: undefined,
 		waitingModalActive: false,
-		waitingState: false
+		waitingState: false,
+		renderedState: false
   },
   methods: {
   	uploadFile: f => {
@@ -58,7 +59,12 @@ var app = new Vue({
   		app.waitingState = true
   		setTimeout(() => {
   			app.canvas = renderNetworkMap()
-  			console.log(app.canvas)
+  			app.renderedState = true
+  			setTimeout(() => {
+  				document.getElementById('renderingArea').appendChild(app.canvas)
+  				app.waitingState = false
+  				app.waitingModalActive = false
+  			}, 200)
   		}, 100);
   	}
   }

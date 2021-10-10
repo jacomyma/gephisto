@@ -43,7 +43,8 @@
 
 <body>
   <section class="section" id="app">
-    <div class="container">
+    <!-- UI for everything except rendering -->
+    <div class="container" v-if="!renderedState">
       <div class="is-hidden-tablet">
         <h1 class="title" style="color:#ff85c2">
           Gephisto
@@ -70,7 +71,7 @@
             Get a <strong>network map</strong> in one click.
           </p>
         </div>
-        <div class="column is-12-mobile is-three-quarters-tablet is-three-fifths-desktop is-two-fifths-widescreen ">
+        <div class="column is-12-mobile is-three-quarters-tablet is-three-fifths-desktop is-two-fifths-widescreen">
           <div class="gephisto-hipster is-unselectable">
             <img src="img/gephisto-hipster.png">
           </div>
@@ -140,6 +141,11 @@
         <div class="column is-one-fifth is-hidden-mobile is-hidden-tablet-only is-hidden-desktop-only is-hidden-widescreen-only">
         </div>
       </div>
+    </div>
+
+    <!-- RENDERED STATE -->
+    <div class="container" v-if="renderedState">
+      <div id="renderingArea"></div>
     </div>
 
     <!-- WAITING MODAL -->
