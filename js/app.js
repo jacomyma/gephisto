@@ -529,8 +529,8 @@ function renderNetworkMap() {
   // Image size and resolution
   settings.image_width = 200 // in mm. Default: 200mm (fits in a A4 page)
   settings.image_height = 200
-  settings.output_dpi = 72//300 // Dots per inch.
-  settings.rendering_dpi = 72//300 // Default: same as output_dpi. You can over- or under-render to tweak quality and speed.
+  settings.output_dpi = 300 // Dots per inch.
+  settings.rendering_dpi = 300 // Default: same as output_dpi. You can over- or under-render to tweak quality and speed.
   
   // Tiling:
   // Tiling allows to build images that would be otherwise too large.
