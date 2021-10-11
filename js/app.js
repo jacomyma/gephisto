@@ -59,13 +59,24 @@ var app = new Vue({
   		app.waitingState = true
   		setTimeout(() => {
   			app.canvas = renderNetworkMap()
+  			app.legend = mutable.legend
   			app.renderedState = true
   			setTimeout(() => {
+  				app.canvas.style.width = "100%"
+  				document.getElementById('renderingArea').innerHTML = ""
   				document.getElementById('renderingArea').appendChild(app.canvas)
   				app.waitingState = false
   				app.waitingModalActive = false
   			}, 200)
   		}, 100);
+  	},
+  	undo: () => {
+  		app.renderedState = false
+  	},
+  	downloadCanvas: () => {
+  		app.canvas.toBlob(function(blob) {
+        saveAs(blob, "Gephisto Network Map.png");
+      })
   	}
   }
 })
@@ -103,17 +114,17 @@ function renderNetworkMap() {
   var layout, gravity
   if (all_nodes_have_sizes && all_nodes_have_coordinates && mutable.use_original_scale) {
     // Everything's fine
-    mutable.legend += "The node sizes and coordinates are from the original data. ";
+    mutable.legend += "The node sizes and positions are from the original data. ";
   } else {
     // Do we keep node positions, assuming there are some?
-    if (all_nodes_have_coordinates && keep_node_positions) {
+    if (all_nodes_have_coordinates && mutable.keep_node_positions) {
       // Everything's fine
       mutable.legend += "The node coordinates are from the original data. ";
     } else {
       // PICK AND COMPUTE LAYOUT
       
       // Pick
-      let roll = layout_type_slider * d3.sum(layouts, c => c.chance)
+      let roll = mutable.layout_type_slider * d3.sum(layouts, c => c.chance)
       layouts.some(c => {
         roll -= c.chance
         if (roll <= 0) {
@@ -125,14 +136,14 @@ function renderNetworkMap() {
       console.log("Layout: "+layout.id)
       mutable.legend += "The node coordinates are computed using the layout algorithm "+layout.name+". ";
       
-      let iterationsRatio = 0.666 + 1.333 * layout_quality_but_slower_slider
+      let iterationsRatio = 0.666 + 1.333 * mutable.layout_quality_but_slower_slider
       if (layout.id == "fa2" || layout.id == "linlog") {
         if (layout.id == "fa2") {
-          gravity = 0.02 + 0.48 * Math.pow(layout_gravity_slider, 3)
+          gravity = 0.02 + 0.48 * Math.pow(mutable.layout_gravity_slider, 3)
         } else {
-          gravity = 0.00002 + 0.00018 * Math.pow(layout_gravity_slider, 3)
+          gravity = 0.00002 + 0.00018 * Math.pow(mutable.layout_gravity_slider, 3)
         }
-        mutable.legend += "The gravity was set to "+gravity+". ";
+        mutable.legend += "The gravity was set to "+numFormat(gravity)+". ";
         
         // Randomize starting positions
         g.nodes().forEach(nid => {
@@ -196,7 +207,7 @@ function renderNetworkMap() {
         layout.layout(g, {});
       }
     }
-    if (different_node_sizes) {
+    if (mutable.different_node_sizes) {
       // Make a list of possible choices
       let candidates = []
       // Some choices are allways there, like the degree.
@@ -226,7 +237,7 @@ function renderNetworkMap() {
         }
       }
       let pick
-      let roll = node_size_attribute_slider * d3.sum(candidates, c => c.chance)
+      let roll = mutable.node_size_attribute_slider * d3.sum(candidates, c => c.chance)
       candidates.some(c => {
         roll -= c.chance
         if (roll <= 0) {
@@ -235,24 +246,27 @@ function renderNetworkMap() {
         }
         return false
       })
+
+      mutable.legend += "Node size depends on "+pick.id+". ";
       
       // Now let's determine a min and max size
       let min_x = d3.min(g.nodes(), nid => g.getNodeAttribute(nid, 'x'))
       let max_x = d3.max(g.nodes(), nid => g.getNodeAttribute(nid, 'x'))
       let min_y = d3.min(g.nodes(), nid => g.getNodeAttribute(nid, 'y'))
-      let max_y = d3.max(g.nodes(), nid => g.getNodeAttribute(nid, 'y'))      // Rationale for the min size:
+      let max_y = d3.max(g.nodes(), nid => g.getNodeAttribute(nid, 'y'))
+      // Rationale for the min size:
       // if the network were occupying a maximal area in a 20cm x 20cm image at 300dpi (2362px),
       // then the minimal node radius should correspond to a punctiation dot
       // at a font size of 12pt, which is around 3 pixels.
       let min_size = 3 * Math.max(max_x-min_x, max_y-min_y) / 2362
       // ...but this just being a heuristic, we add some variability.
-      min_size *= 0.666 + node_size_slider * 2.333
+      min_size *= 0.666 + mutable.node_size_slider * 2.333
       // Rationale for the max size:
       // Assuming that the bigger nodes are no more than 10% of the nodes,
       // they should occupy no more than 15% of the overall space.
       let max_size = 0.5 * Math.sqrt(.15 * Math.pow(Math.max(max_x-min_x, max_y-min_y), 2)) / (.1 * g.order)
       // ...but this just being a heuristic, we add some variability.
-      max_size *= 0.666 + (node_size_slider + 13 * Math.pow(node_size_spread_slider, 5)) * 0.666
+      max_size *= 0.666 + (mutable.node_size_slider + 13 * Math.pow(mutable.node_size_spread_slider, 5)) * 0.666
       // We just want to keep it at least 2 times as big as min_size
       
       // IMPORTANT NOTE:
@@ -297,7 +311,7 @@ function renderNetworkMap() {
       // Strategy: start with the comfortable size, and see if there are overlaps.
       // If there are too many, test a smaller size but not smaller than the min size.
       // Threshold: 0.1% to 30% of nodes overlapping allowed (depending on settings)
-      let overlap_thershold = g.order * (0.001 + 0.2999 * Math.pow(node_size_slider, 3))
+      let overlap_thershold = g.order * (0.001 + 0.2999 * Math.pow(mutable.node_size_slider, 3))
       let overlaps = 0
       let test_size = comf_size
       do {
@@ -347,11 +361,13 @@ function renderNetworkMap() {
         let n = g.getNodeAttributes(nid)
         n.size = test_size
       })
+
+      mutable.legend += "Node size is set to a constant. ";
     }
     
     // If a layout has been computed and the quality is high enough, we make
     // a last pass to prevent overlap
-    if (layout && (layout.id == "fa2" || layout.id == "linlog") && layout_quality_but_slower_slider > 0.2) {
+    if (layout && (layout.id == "fa2" || layout.id == "linlog") && mutable.layout_quality_but_slower_slider > 0.2) {
       g.nodes().forEach(nid => {
         let n = g.getNodeAttributes(nid)
         n.size = n.size * 2.1
@@ -368,6 +384,7 @@ function renderNetworkMap() {
         n.size = n.size / 2.1
       })
 
+      mutable.legend += "Nodes have been slightly moved to prevent overlaps and improve readibility. ";
     }
 
   }
@@ -879,6 +896,7 @@ var layouts = [
 ]
 
 function randomize_settings() {
+	// Default, for testing
   mutable.draw_grid = false
   mutable.use_original_scale = true
   mutable.keep_node_positions = true
@@ -891,7 +909,7 @@ function randomize_settings() {
   mutable.layout_gravity_slider = 0
   mutable.layout_quality_but_slower_slider = 0
 
-  return 
+  //return // Comment to use actual randomization
   
   mutable.draw_grid = Math.random() <= .5
   mutable.use_original_scale = Math.random() <= .25
@@ -904,4 +922,12 @@ function randomize_settings() {
   mutable.layout_type_slider = Math.random()
   mutable.layout_gravity_slider = Math.random()
   mutable.layout_quality_but_slower_slider = Math.random()
+}
+
+function numFormat(n) {
+	if (n>0.001 && n<999) {
+		return n
+	} else {
+		return n.toPrecision(3).replace(/e/, 'x10^')
+	}
 }
