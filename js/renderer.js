@@ -2043,6 +2043,7 @@ var newRenderer = function(){
     options.node_stroke = (options.node_stroke===undefined)?(true):(options.node_stroke)
     options.node_stroke_width = options.node_stroke_width || 0.08 // in mm
     options.node_color_original = (options.node_color_original===undefined)?(false):(options.node_color_original)
+    options.node_color_from_clusters = (options.node_color_from_clusters===undefined)?(false):(options.node_color_from_clusters)
     options.node_fill_color = options.node_fill_color || "#FFF"
     options.node_stroke_color = options.node_stroke_color || "#303040"
     
@@ -2057,6 +2058,15 @@ var newRenderer = function(){
 
       var color = options.node_color_original ? (n.color || options.node_fill_color) : options.node_fill_color
       var radius = Math.max(options.node_size * n.size, stroke_width)
+
+      if (options.node_color_from_clusters) {
+        let m = options.node_clusters.modalities[n[options.node_clusters.attribute_id]]
+        if (m) {
+          color = m.color
+        } else {
+          color = options.node_clusters.default_color
+        }
+      }
 
       ctx.lineCap="round"
       ctx.lineJoin="round"

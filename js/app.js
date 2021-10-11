@@ -398,8 +398,22 @@ function renderNetworkMap() {
     }
   }
 
-  // NODE COLOR
+  // NODE COLORS (and clusters)
+  // Default stuff
   settings.node_fill_color = "#999" // Default
+  settings.node_color_from_clusters = false
+  settings.node_clusters = {} // Default
+  let palette = [
+	  {color:"#5ba5b8", name:"blue"},
+	  {color:"#e87fbb", name:"pink"},
+	  {color:"#66b456", name:"green"},
+	  {color:"#f6522b", name:"red"},
+	  {color:"#f9aa26", name:"yellow"}
+  ]
+  let paletteDefault = {color:"#5e676e", name:"grey"}
+  settings.node_clusters["default_color"] = paletteDefault.color
+  settings.node_clusters["default_color_name"] = paletteDefault.name
+
   // If we use colors and/or clustering, then we need to seek attributes (precomputation)
   let candidates = [];
   if ( !(all_nodes_have_colors && mutable.use_original_node_color) || mutable.display_clusters) {
@@ -441,51 +455,33 @@ function renderNetworkMap() {
 	        return true
 	      }
 	      return false
-	    })    	
-	    mutable.legend += "Node color depends on the attribute "+nodeColorPick.id+". ";
-	    // TODO: ACTUALLY MAKE IT!!!!!
-
-			//  settings.node_clusters = {
-			//   "attribute_id": "modularity_class",
-			//   "modalities": {
-			//     "1": {
-			//       "label": "Sex",
-			//       "count": 146,
-			//       "color": "#5ba5b8"
-			//     },
-			//     "2": {
-			//       "label": "Family",
-			//       "count": 85,
-			//       "color": "#d4677e"
-			//     },
-			//     "6": {
-			//       "label": "Illness",
-			//       "count": 156,
-			//       "color": "#66b456"
-			//     },
-			//     "7": {
-			//       "label": "Domination",
-			//       "count": 79,
-			//       "color": "#f9aa26"
-			//     },
-			//     "8": {
-			//       "label": "Culture",
-			//       "count": 174,
-			//       "color": "#f6522b"
-			//     },
-			//     "5": {
-			//       "label": "Feelings",
-			//       "count": 77,
-			//       "color": "#5e676e"
-			//     },
-			//     "4": {
-			//       "label": "Work",
-			//       "count": 75,
-			//       "color": "#5e676e"
-			//     },
-			//   },
-			//   "default_color": "#5e676e"
-			// }
+	    })
+	    mutable.legend += "Node color depends on the attribute "+nodeColorPick.id+": ";
+	    
+	    settings.node_clusters["attribute_id"] = nodeColorPick.id
+	    settings.node_clusters["modalities"] = {}
+	    // Sort modalities
+	    let modalities = diagnosis.nodeAttributes[nodeColorPick.id].modalities
+	    let sortedModalities = []
+	    for (let m in modalities) {
+	    	sortedModalities.push({m:m, count:modalities[m]})
+	    }
+	    sortedModalities.sort(function(a,b){
+	    	return b.count-a.count
+	    })
+	    sortedModalities.forEach((m,i) => {
+	    	if (i<5) {
+	    		settings.node_clusters["modalities"][m.m] = {
+	    			label: m.m,
+	    			count: m.count,
+	    			color: palette[i].color,
+	    			color_name: palette[i].name,
+	    		}
+			    mutable.legend += "in "+palette[i].name+" is "+m.m+"; ";
+	    	}
+	    })
+	    mutable.legend += "and in "+paletteDefault.name+" are the other modalities. ";
+	    settings.node_color_from_clusters = true
     } else {
     	settings.node_fill_color = "#171637"
 
@@ -963,8 +959,9 @@ function randomize_settings() {
   mutable.use_original_scale = true
   mutable.keep_node_positions = true
   mutable.different_node_sizes = false
-  mutable.different_node_colors = false
+  mutable.different_node_colors = true
   mutable.display_clusters = false
+  mutable.use_original_node_color = false
   
   mutable.node_size_attribute_slider = 0
   mutable.node_size_slider = 0
@@ -972,7 +969,6 @@ function randomize_settings() {
   mutable.layout_type_slider = 0
   mutable.layout_gravity_slider = 0
   mutable.layout_quality_but_slower_slider = 0
-  mutable.use_original_node_color = 0
   mutable.node_color_attribute_slider = 0
 
   return // Comment to use actual randomization
@@ -983,6 +979,7 @@ function randomize_settings() {
   mutable.different_node_sizes = Math.random() <= 0.85
   mutable.different_node_colors = Math.random() <= 0.85
   mutable.display_clusters = Math.random() <= 0.25
+  mutable.use_original_node_color = Math.random() <= .25
 
   mutable.node_size_attribute_slider = Math.random()
   mutable.node_size_slider = Math.random()
@@ -990,7 +987,6 @@ function randomize_settings() {
   mutable.layout_type_slider = Math.random()
   mutable.layout_gravity_slider = Math.random()
   mutable.layout_quality_but_slower_slider = Math.random()
-  mutable.use_original_node_color = Math.random() <= .25
   mutable.node_color_attribute_slider = Math.random()
 }
 
