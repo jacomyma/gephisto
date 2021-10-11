@@ -114,7 +114,7 @@ function renderNetworkMap() {
   var layout, gravity
   if (all_nodes_have_sizes && all_nodes_have_coordinates && mutable.use_original_scale) {
     // Everything's fine
-    mutable.legend += "The node sizes and coordinates are from the original data. ";
+    mutable.legend += "The node sizes and positions are from the original data. ";
   } else {
     // Do we keep node positions, assuming there are some?
     if (all_nodes_have_coordinates && mutable.keep_node_positions) {
@@ -143,7 +143,7 @@ function renderNetworkMap() {
         } else {
           gravity = 0.00002 + 0.00018 * Math.pow(mutable.layout_gravity_slider, 3)
         }
-        mutable.legend += "The gravity was set to "+gravity+". ";
+        mutable.legend += "The gravity was set to "+numFormat(gravity)+". ";
         
         // Randomize starting positions
         g.nodes().forEach(nid => {
@@ -246,12 +246,15 @@ function renderNetworkMap() {
         }
         return false
       })
+
+      mutable.legend += "Node size depends on "+pick.id+". ";
       
       // Now let's determine a min and max size
       let min_x = d3.min(g.nodes(), nid => g.getNodeAttribute(nid, 'x'))
       let max_x = d3.max(g.nodes(), nid => g.getNodeAttribute(nid, 'x'))
       let min_y = d3.min(g.nodes(), nid => g.getNodeAttribute(nid, 'y'))
-      let max_y = d3.max(g.nodes(), nid => g.getNodeAttribute(nid, 'y'))      // Rationale for the min size:
+      let max_y = d3.max(g.nodes(), nid => g.getNodeAttribute(nid, 'y'))
+      // Rationale for the min size:
       // if the network were occupying a maximal area in a 20cm x 20cm image at 300dpi (2362px),
       // then the minimal node radius should correspond to a punctiation dot
       // at a font size of 12pt, which is around 3 pixels.
@@ -358,6 +361,8 @@ function renderNetworkMap() {
         let n = g.getNodeAttributes(nid)
         n.size = test_size
       })
+
+      mutable.legend += "Node size is set to a constant. ";
     }
     
     // If a layout has been computed and the quality is high enough, we make
@@ -379,6 +384,7 @@ function renderNetworkMap() {
         n.size = n.size / 2.1
       })
 
+      mutable.legend += "Nodes have been slightly moved to prevent overlaps and improve readibility. ";
     }
 
   }
@@ -916,4 +922,12 @@ function randomize_settings() {
   mutable.layout_type_slider = Math.random()
   mutable.layout_gravity_slider = Math.random()
   mutable.layout_quality_but_slower_slider = Math.random()
+}
+
+function numFormat(n) {
+	if (n>0.001 && n<999) {
+		return n
+	} else {
+		return n.toPrecision(3).replace(/e/, 'x10^')
+	}
 }
