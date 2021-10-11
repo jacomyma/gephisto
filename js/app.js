@@ -184,7 +184,7 @@ function renderNetworkMap() {
           })
           iterations += Math.floor(iterationsRatio * ( 200 + ((g.order <= 5000)?(300):(0)) ))
 
-          mutable.legend += iterations+" iterations were computed, in three batches with different settings, to optimize the rendering. ";
+          mutable.legend += "For the layout, "+iterations+" iterations were computed, in three batches with different settings, to optimize the rendering. ";
         } else { // LinLog
           layout.layout(g, {
             gravity: gravity,
@@ -200,7 +200,7 @@ function renderNetworkMap() {
             adjustSizes: false,
             iterations:  Math.floor(iterationsRatio * 1000)
           })
-          mutable.legend += Math.floor(iterationsRatio * 3000)+" iterations were computed, in two batches with different settings, to optimize the rendering. ";
+          mutable.legend += "For the layout, "+Math.floor(iterationsRatio * 3000)+" iterations were computed, in two batches with different settings, to optimize the rendering. ";
         }
         
       } else if (layout.id == "random") {
@@ -925,9 +925,5 @@ function randomize_settings() {
 }
 
 function numFormat(n) {
-	if (n>0.001 && n<999) {
-		return n
-	} else {
-		return n.toPrecision(3).replace(/e/, 'x10^')
-	}
+	return n.toPrecision(3).replace(/e/, 'x10^')
 }
