@@ -59,13 +59,24 @@ var app = new Vue({
   		app.waitingState = true
   		setTimeout(() => {
   			app.canvas = renderNetworkMap()
+  			app.legend = mutable.legend
   			app.renderedState = true
   			setTimeout(() => {
+  				app.canvas.style.width = "100%"
+  				document.getElementById('renderingArea').innerHTML = ""
   				document.getElementById('renderingArea').appendChild(app.canvas)
   				app.waitingState = false
   				app.waitingModalActive = false
   			}, 200)
   		}, 100);
+  	},
+  	undo: () => {
+  		app.renderedState = false
+  	},
+  	downloadCanvas: () => {
+  		app.canvas.toBlob(function(blob) {
+        saveAs(blob, "Gephisto Network Map.png");
+      })
   	}
   }
 })

@@ -144,8 +144,34 @@
     </div>
 
     <!-- RENDERED STATE -->
-    <div class="container" v-if="renderedState">
-      <div id="renderingArea" style="overflow-y:scroll; overflow-x:scroll"></div>
+    <div v-if="renderedState" style="position:relative">
+      <div id="renderingArea" style="position:absolute;"></div>
+      <!-- Overlay commands -->
+      <div style="position:absolute; width:200px;">
+        
+        <b-button @click="downloadCanvas"
+          class="button is-success is-fullwidth"
+          icon-left="download"
+        >
+          DOWNLOAD</i>
+        </b-button>
+        <br>
+
+        <b-button @click="undo"
+          class="button is-success is-light is-fullwidth"
+          icon-left="undo"
+        >
+          UNDO</i>
+        </b-button>
+        <br>
+
+        <b-field label="Legend"
+          label-position="on-border">
+          <b-input type="textarea" v-model="legend">
+          </b-input>
+        </b-field>
+        
+      </div>
     </div>
 
     <!-- WAITING MODAL -->
@@ -178,6 +204,7 @@
   <script src="https://cdn.jsdelivr.net/npm/graphology-library@0.3.0/dist/graphology-library.min.js"></script>
   <script src="https://bundle.run/graphology-layout@0.3.2"></script>
   <script src="https://bundle.run/graphology-layout-forceatlas2@0.5.2"></script>
+  <script src="js/FileSaver.min.js"></script>
   <script src="js/app.js"></script>
   <script src="js/renderer.js"></script>
 </body>
