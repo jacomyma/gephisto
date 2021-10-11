@@ -384,7 +384,7 @@ function renderNetworkMap() {
         n.size = n.size / 2.1
       })
 
-      mutable.legend += "Nodes have been slightly moved to prevent overlaps and improve readibility. ";
+      mutable.legend += "Nodes have been slightly moved to minimize overlaps and improve readability. ";
     }
 
   }
@@ -925,5 +925,5 @@ function randomize_settings() {
 }
 
 function numFormat(n) {
-	return n.toPrecision(3).replace(/e/, 'x10^')
+	return (+n.toPrecision(3)).toExponential()
 }
