@@ -519,87 +519,85 @@ function renderNetworkMap() {
       settings.node_clusters = {}
 
       mutable.legend += "All nodes are colored the same. ";
-    }
-
-    // Clusters
-    // We do not display clusters if original node colors were used
-    // (because we don't know how badly it could interfere)
-    if (mutable.display_clusters && !mutable.use_original_node_color) {
-    	// How we display clusters depends on whether or not nodes were colored
-    	if (settings.node_clusters["attribute_id"]) {
-    		// We display clusters for the attribute used for node colors
-    		if (mutable.clusters_as_fills) {
-    			// Fills with cluster labels
-    			settings.draw_cluster_labels = true
-    			settings.draw_cluster_fills = true
-    			mutable.legend += "Gatherings of nodes with the same "+settings.node_clusters["attribute_id"]+" were highlighted by a colorfull shape corresponding to their modality. ";
-    		} else {
-    			// Contours only
-	    		settings.draw_cluster_contours = true
-    			mutable.legend += "Gatherings of nodes with the same "+settings.node_clusters["attribute_id"]+" were highlighted by a color contour corresponding to their modality. ";
-    		}
-    	} else if (candidates.length > 0){
-    		// Pick a cluster attribute
-    		let clusterPick
-		    let roll = mutable.node_color_attribute_slider * d3.sum(candidates, c => c.chance)
-		    candidates.some(c => {
-		      roll -= c.chance
-		      if (roll <= 0) {
-		        clusterPick = c
-		        return true
-		      }
-		      return false
-		    })
-		    mutable.legend += "The cluster shapes highlight gatherings of nodes with the same modality for the attribute "+clusterPick.id+": ";
-		    
-		    settings.node_clusters["attribute_id"] = clusterPick.id
-		    settings.node_clusters["modalities"] = {}
-		    // Sort modalities
-		    let modalities = diagnosis.nodeAttributes[clusterPick.id].modalities
-		    let sortedModalities = []
-		    for (let m in modalities) {
-		    	sortedModalities.push({m:m, count:modalities[m]})
-		    }
-		    sortedModalities.sort(function(a,b){
-		    	return b.count-a.count
-		    })
-		    sortedModalities.forEach((m,i) => {
-		    	if (i<5) {
-		    		settings.node_clusters["modalities"][m.m] = {
-		    			label: m.m,
-		    			count: m.count,
-		    			color: palette[i].color,
-		    			color_name: palette[i].name,
-		    		}
-				    mutable.legend += "in "+palette[i].name+" is "+m.m+"; ";
-		    	}
-		    })
-		    if (sortedModalities.length>5) {
-			    mutable.legend += "and in "+paletteDefault.name+" are the other modalities. ";
-		    } else {
-			    mutable.legend += "and there are no other modalities. ";
-		    }
-
-		    if (mutable.clusters_as_fills) {
-    			// Fills with cluster labels
-    			settings.draw_cluster_labels = true
-    			settings.draw_cluster_fills = true
-	    		settings.draw_cluster_contours = true
-    			// Note: here we do not show node labels, to focus on clusters.
-	    		settings.draw_node_labels = false
-    		} else {
-    			// Contours
-    			settings.draw_cluster_labels = true
-	    		settings.draw_cluster_contours = true
-    		}
-    	}
-    }
-
-
-
-  	console.log("Diagnosis", diagnosis)
-    
+    }    
   }
+
+
+  // Clusters
+  // We do not display clusters if original node colors were used
+  // (because we don't know how badly it could interfere)
+  if (mutable.display_clusters && !mutable.use_original_node_color) {
+  	// How we display clusters depends on whether or not nodes were colored
+  	if (settings.node_clusters["attribute_id"]) {
+  		// We display clusters for the attribute used for node colors
+  		if (mutable.clusters_as_fills) {
+  			// Fills with cluster labels
+  			settings.draw_cluster_labels = true
+  			settings.draw_cluster_fills = true
+  			mutable.legend += "Gatherings of nodes with the same "+settings.node_clusters["attribute_id"]+" were highlighted by a colorfull shape corresponding to their modality. ";
+  		} else {
+  			// Contours only
+    		settings.draw_cluster_contours = true
+  			mutable.legend += "Gatherings of nodes with the same "+settings.node_clusters["attribute_id"]+" were highlighted by a color contour corresponding to their modality. ";
+  		}
+  	} else if (candidates.length > 0){
+  		// Pick a cluster attribute
+  		let clusterPick
+	    let roll = mutable.node_color_attribute_slider * d3.sum(candidates, c => c.chance)
+	    candidates.some(c => {
+	      roll -= c.chance
+	      if (roll <= 0) {
+	        clusterPick = c
+	        return true
+	      }
+	      return false
+	    })
+	    mutable.legend += "The cluster shapes highlight gatherings of nodes with the same modality for the attribute "+clusterPick.id+": ";
+	    
+	    settings.node_clusters["attribute_id"] = clusterPick.id
+	    settings.node_clusters["modalities"] = {}
+	    // Sort modalities
+	    let modalities = diagnosis.nodeAttributes[clusterPick.id].modalities
+	    let sortedModalities = []
+	    for (let m in modalities) {
+	    	sortedModalities.push({m:m, count:modalities[m]})
+	    }
+	    sortedModalities.sort(function(a,b){
+	    	return b.count-a.count
+	    })
+	    sortedModalities.forEach((m,i) => {
+	    	if (i<5) {
+	    		settings.node_clusters["modalities"][m.m] = {
+	    			label: m.m,
+	    			count: m.count,
+	    			color: palette[i].color,
+	    			color_name: palette[i].name,
+	    		}
+			    mutable.legend += "in "+palette[i].name+" is "+m.m+"; ";
+	    	}
+	    })
+	    if (sortedModalities.length>5) {
+		    mutable.legend += "and in "+paletteDefault.name+" are the other modalities. ";
+	    } else {
+		    mutable.legend += "and there are no other modalities. ";
+	    }
+
+	    if (mutable.clusters_as_fills) {
+  			// Fills with cluster labels
+  			settings.draw_cluster_labels = true
+  			settings.draw_cluster_fills = true
+    		settings.draw_cluster_contours = true
+  			// Note: here we do not show node labels, to focus on clusters.
+    		settings.draw_node_labels = false
+  		} else {
+  			// Contours
+  			settings.draw_cluster_labels = true
+    		settings.draw_cluster_contours = true
+  		}
+  	}
+  }
+
+ 	console.log("Diagnosis", diagnosis)
 
   /// OTHER RENDERER SETTINGS
   
@@ -1068,8 +1066,8 @@ function randomize_settings() {
   mutable.different_node_sizes = false
   mutable.use_original_node_color = false
   mutable.different_node_colors = false
-  mutable.display_clusters = true
-  mutable.clusters_as_fills = true
+  mutable.display_clusters = false
+  mutable.clusters_as_fills = false
   
   mutable.node_size_attribute_slider = 0
   mutable.node_size_slider = 0
@@ -1087,7 +1085,7 @@ function randomize_settings() {
   mutable.different_node_sizes = Math.random() <= 0.85
   mutable.use_original_node_color = Math.random() <= .25
   mutable.different_node_colors = Math.random() <= 0.85
-  mutable.display_clusters = Math.random() <= 0.25
+  mutable.display_clusters = Math.random() <= 0.33
   mutable.clusters_as_fills = Math.random() <= 0.5
 
   mutable.node_size_attribute_slider = Math.random()
