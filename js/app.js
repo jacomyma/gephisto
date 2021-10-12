@@ -52,6 +52,9 @@ var app = new Vue({
   			app.file = undefined
   			alert("/!\\ Only GEXF files are accepted.")
   		}
+
+  		// Auto accept (for debug)
+  		app.acceptPact()
   	},
   	loadSample: f => {
   		fetch("data/"+f)
@@ -107,16 +110,18 @@ function renderNetworkMap() {
   
   let diagnosis = diagnose(g)
 
+  settings.draw_node_labels = true
+
   // Margins (it depends on some things)
   settings.margin_top    =  6 // in mm
   settings.margin_right  =  6 // in mm
   settings.margin_bottom = 12 // in mm
   settings.margin_left   =  6 // in mm
   if (mutable.display_clusters) {
-	  settings.margin_top    = 36 // in mm
-	  settings.margin_right  = 36 // in mm
-	  settings.margin_bottom = 36 // in mm
-	  settings.margin_left   = 36 // in mm
+	  settings.margin_top    = 24 // in mm
+	  settings.margin_right  = 24 // in mm
+	  settings.margin_bottom = 24 // in mm
+	  settings.margin_left   = 24 // in mm
   }
 
   let all_nodes_have_sizes = true
@@ -424,6 +429,7 @@ function renderNetworkMap() {
   settings.node_clusters = {} // Default
   settings.draw_cluster_contours = false
   settings.draw_cluster_fills = false
+	settings.draw_cluster_labels = false
   let palette = [
 	  {color:"#5ba5b8", name:"blue"},
 	  {color:"#e87fbb", name:"pink"},
@@ -515,11 +521,75 @@ function renderNetworkMap() {
       mutable.legend += "All nodes are colored the same. ";
     }
 
-    if (mutable.display_clusters) {
+    // Clusters
+    // We do not display clusters if original node colors were used
+    // (because we don't know how badly it could interfere)
+    if (mutable.display_clusters && !mutable.use_original_node_color) {
+    	// How we display clusters depends on whether or not nodes were colored
     	if (settings.node_clusters["attribute_id"]) {
+    		// We display clusters for the attribute used for node colors
     		if (mutable.clusters_as_fills) {
+    			// Fills with cluster labels
+    			settings.draw_cluster_labels = true
     			settings.draw_cluster_fills = true
+    			mutable.legend += "Gatherings of nodes with the same "+settings.node_clusters["attribute_id"]+" were highlighted by a colorfull shape corresponding to their modality. ";
     		} else {
+    			// Contours only
+	    		settings.draw_cluster_contours = true
+    			mutable.legend += "Gatherings of nodes with the same "+settings.node_clusters["attribute_id"]+" were highlighted by a color contour corresponding to their modality. ";
+    		}
+    	} else if (candidates.length > 0){
+    		// Pick a cluster attribute
+    		let clusterPick
+		    let roll = mutable.node_color_attribute_slider * d3.sum(candidates, c => c.chance)
+		    candidates.some(c => {
+		      roll -= c.chance
+		      if (roll <= 0) {
+		        clusterPick = c
+		        return true
+		      }
+		      return false
+		    })
+		    mutable.legend += "The cluster shapes highlight gatherings of nodes with the same modality for the attribute "+clusterPick.id+": ";
+		    
+		    settings.node_clusters["attribute_id"] = clusterPick.id
+		    settings.node_clusters["modalities"] = {}
+		    // Sort modalities
+		    let modalities = diagnosis.nodeAttributes[clusterPick.id].modalities
+		    let sortedModalities = []
+		    for (let m in modalities) {
+		    	sortedModalities.push({m:m, count:modalities[m]})
+		    }
+		    sortedModalities.sort(function(a,b){
+		    	return b.count-a.count
+		    })
+		    sortedModalities.forEach((m,i) => {
+		    	if (i<5) {
+		    		settings.node_clusters["modalities"][m.m] = {
+		    			label: m.m,
+		    			count: m.count,
+		    			color: palette[i].color,
+		    			color_name: palette[i].name,
+		    		}
+				    mutable.legend += "in "+palette[i].name+" is "+m.m+"; ";
+		    	}
+		    })
+		    if (sortedModalities.length>5) {
+			    mutable.legend += "and in "+paletteDefault.name+" are the other modalities. ";
+		    } else {
+			    mutable.legend += "and there are no other modalities. ";
+		    }
+
+		    if (mutable.clusters_as_fills) {
+    			// Fills with cluster labels
+    			settings.draw_cluster_labels = true
+    			settings.draw_cluster_fills = true
+	    		settings.draw_cluster_contours = true
+    			// Note: here we do not show node labels, to focus on clusters.
+	    		settings.draw_node_labels = false
+    		} else {
+    			// Contours
+    			settings.draw_cluster_labels = true
 	    		settings.draw_cluster_contours = true
     		}
     	}
@@ -562,10 +632,10 @@ function renderNetworkMap() {
   settings.draw_network_shape_contour = false
   // settings.draw_cluster_fills = false
   // settings.draw_cluster_contours = false
-  settings.draw_cluster_labels = false
+  // settings.draw_cluster_labels = false
   settings.draw_edges = true
   settings.draw_nodes = true
-  settings.draw_node_labels = true
+  // settings.draw_node_labels = true
   settings.draw_connected_closeness = mutable.draw_grid
   
   // Layer: Background
@@ -607,14 +677,14 @@ function renderNetworkMap() {
   settings.cluster_fill_color_default = "#8B8B8B"
   settings.cluster_fill_overlay = true // A different blending mode
   // ...cluster contours
-  settings.cluster_contour_thickness = .4 // Range: 0 to 10 or more
+  settings.cluster_contour_thickness = .6 // Range: 0 to 10 or more
   settings.cluster_contour_alpha = 1 // Opacity // Range from 0 to 1
   settings.cluster_contour_color_by_modality = true // if false, use default color below
   settings.cluster_contour_color_default = "#8B8B8B"
   // ...cluster labels
   settings.cluster_label_colored = true
-  settings.cluster_label_font_min_size = 14 // In pt
-  settings.cluster_label_font_max_size = 24 // In pt
+  settings.cluster_label_font_min_size = 8 // In pt
+  settings.cluster_label_font_max_size = 14 // In pt
   settings.cluster_label_font_thickness = .45 // In mm
   settings.cluster_label_border_thickness = 1.6 // In mm
   settings.cluster_label_inner_color = "#ffffff" // Note: here color is on the border
@@ -997,7 +1067,7 @@ function randomize_settings() {
   mutable.keep_node_positions = true
   mutable.different_node_sizes = false
   mutable.use_original_node_color = false
-  mutable.different_node_colors = true
+  mutable.different_node_colors = false
   mutable.display_clusters = true
   mutable.clusters_as_fills = true
   
