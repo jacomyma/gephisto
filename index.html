@@ -77,28 +77,48 @@
           </div>
           <div class="box" style="min-height: 300px;">
             <!-- UPLOAD STATE -->
-            <b-field v-if="!file && !waitingState">
-              <b-upload
-                v-model="file"
-                expanded
-                v-on:input="uploadFile"
-                drag-drop>
-                <section class="section">
-                  <div class="content has-text-centered">
-                    <p>
-                      <b-icon
-                        icon="upload"
-                        size="is-large">
-                      </b-icon>
-                    </p>
-                    <p>
-                      Drop your GEXF here
-                      <br>or click to upload
-                    </p>
-                  </div>
-                </section>
-              </b-upload>
-            </b-field>
+            <div v-if="!file && !waitingState">
+              <b-field>
+                <b-upload
+                  v-model="file"
+                  expanded
+                  v-on:input="uploadFile"
+                  drag-drop>
+                  <section class="section">
+                    <div class="content has-text-centered">
+                      <p>
+                        <b-icon
+                          icon="upload"
+                          size="is-large">
+                        </b-icon>
+                      </p>
+                      <p>
+                        Drop your GEXF here
+                        <br>or click to upload
+                      </p>
+                    </div>
+                  </section>
+                </b-upload>
+              </b-field>
+              <div class="block has-text-centered" style="opacity:0.5">
+                <small>
+                  Or try a sample network:
+                </small>
+                <br>
+                <b-button @click="loadSample('europe.gexf')"
+                  class="button is-small is-light">
+                  Europe
+                </b-button>
+                <b-button @click="loadSample('c-elegans.gexf')"
+                  class="button is-small is-light">
+                  C. Elegans
+                </b-button>
+                <b-button @click="loadSample('migrations.gexf')"
+                  class="button is-small is-light">
+                  Migrations
+                </b-button>
+              </div>
+            </div>
 
             <!-- CONFIRMATION STATE -->
             <div v-if="file && !waitingState">
@@ -145,7 +165,7 @@
 
     <!-- RENDERED STATE -->
     <div v-if="renderedState" style="position:relative">
-      <div id="renderingArea" style="position:absolute;"></div>
+      <div id="renderingArea" style="position:absolute; margin: -3rem -1.5rem;"></div>
       <!-- Overlay commands -->
       <div style="position:absolute; width:270px;">
         
@@ -166,7 +186,7 @@
         <br>
 
         <b-field label="LEGEND (to copy-paste)"
-          label-position="on-border">
+          label-position="inside">
           <b-input type="textarea" v-model="legend">
           </b-input>
         </b-field>
@@ -184,7 +204,7 @@
         </div>
         <div class="card-content">
           <div class="content">
-            <strong>You need to wait, but don't worry!</strong> Your browser is computing hard. This tab may freeze for some time: that is normal.
+            <strong>You need to wait, but don't worry!</strong> Your browser is computing hard. The tab may freeze temporarily.
           </div>
         </div>
       </div>

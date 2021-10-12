@@ -22,8 +22,7 @@ var app = new Vue({
 	  			let parser = new DOMParser();
 	  			reader.onload = () => {
 	  				var doc = parser.parseFromString(reader.result, "text/xml");
-
-		  			// Try parsing GEXF
+	  				// Try parsing GEXF
 		  			app._g = (() => {
 		  				let g
 		  				try {
@@ -53,6 +52,17 @@ var app = new Vue({
   			app.file = undefined
   			alert("/!\\ Only GEXF files are accepted.")
   		}
+
+  		// Auto accept (for debug)
+  		// app.acceptPact()
+  	},
+  	loadSample: f => {
+  		fetch("data/"+f)
+  			.then(response => response.blob())
+  			.then(blob => {
+			    app.file = new File([blob], f);
+			    app.uploadFile(app.file)
+			  })
   	},
   	acceptPact: () => {
   		app.waitingModalActive = true
@@ -67,8 +77,8 @@ var app = new Vue({
   				document.getElementById('renderingArea').appendChild(app.canvas)
   				app.waitingState = false
   				app.waitingModalActive = false
-  			}, 200)
-  		}, 100);
+  			}, 500)
+  		}, 250);
   	},
   	undo: () => {
   		app.renderedState = false
@@ -90,14 +100,33 @@ var mutable = {}
 function renderNetworkMap() {
 	randomize_settings()
 
+	// We initialize renderer settings here
+	// because we sometimes set them in this process
+  let settings = {}
+
 	// From Observable prototype
   mutable.legend = "";
   let g = app._g.copy()
   
-  let diagnostic = diagnose(g)
-  
+  let diagnosis = diagnose(g)
+
+  settings.draw_node_labels = true
+
+  // Margins (it depends on some things)
+  settings.margin_top    =  6 // in mm
+  settings.margin_right  =  6 // in mm
+  settings.margin_bottom = 12 // in mm
+  settings.margin_left   =  6 // in mm
+  if (mutable.display_clusters) {
+	  settings.margin_top    = 24 // in mm
+	  settings.margin_right  = 24 // in mm
+	  settings.margin_bottom = 24 // in mm
+	  settings.margin_left   = 24 // in mm
+  }
+
   let all_nodes_have_sizes = true
   let all_nodes_have_coordinates = true
+  let all_nodes_have_colors = true
   g.nodes().forEach(nid => {
     let n = g.getNodeAttributes(nid)
     if (n.size === undefined) {
@@ -109,8 +138,13 @@ function renderNetworkMap() {
       n.x = Math.random()
       n.y = Math.random()
     }
+    if (n.color === undefined) {
+    	all_nodes_have_colors = false
+    	n.color = "#999"
+    }
   })
   
+  // NODE SIZE AND POSITION
   var layout, gravity
   if (all_nodes_have_sizes && all_nodes_have_coordinates && mutable.use_original_scale) {
     // Everything's fine
@@ -184,7 +218,7 @@ function renderNetworkMap() {
           })
           iterations += Math.floor(iterationsRatio * ( 200 + ((g.order <= 5000)?(300):(0)) ))
 
-          mutable.legend += iterations+" iterations were computed, in three batches with different settings, to optimize the rendering. ";
+          mutable.legend += "For the layout, "+iterations+" iterations were computed, in three batches with different settings, to optimize the rendering. ";
         } else { // LinLog
           layout.layout(g, {
             gravity: gravity,
@@ -200,7 +234,7 @@ function renderNetworkMap() {
             adjustSizes: false,
             iterations:  Math.floor(iterationsRatio * 1000)
           })
-          mutable.legend += Math.floor(iterationsRatio * 3000)+" iterations were computed, in two batches with different settings, to optimize the rendering. ";
+          mutable.legend += "For the layout, "+Math.floor(iterationsRatio * 3000)+" iterations were computed, in two batches with different settings, to optimize the rendering. ";
         }
         
       } else if (layout.id == "random") {
@@ -210,7 +244,7 @@ function renderNetworkMap() {
     if (mutable.different_node_sizes) {
       // Make a list of possible choices
       let candidates = []
-      // Some choices are allways there, like the degree.
+      // Some choices are always there, like the degree.
       candidates.push({type:'native', id:'degree', chance:.7})
       if (g.type == "directed" || g.type == "mixed") {
         candidates.push({type:'native', id:'inDegree', chance:.5})
@@ -218,8 +252,8 @@ function renderNetworkMap() {
       }
       
       // Then, there might be node attributes we can use
-      for (let att in diagnostic.nodeAttributes) {
-        let attData = diagnostic.nodeAttributes[att]
+      for (let att in diagnosis.nodeAttributes) {
+        let attData = diagnosis.nodeAttributes[att]
         if (attData.type == "integer" || attData.type == "float") {
           if (attData.modalitiesInfo.distinct > 1) {
             let chance = 1
@@ -247,7 +281,7 @@ function renderNetworkMap() {
         return false
       })
 
-      mutable.legend += "Node size depends on "+pick.id+". ";
+      mutable.legend += "The node sizes depend on the attribute "+pick.id+". ";
       
       // Now let's determine a min and max size
       let min_x = d3.min(g.nodes(), nid => g.getNodeAttribute(nid, 'x'))
@@ -384,11 +418,377 @@ function renderNetworkMap() {
         n.size = n.size / 2.1
       })
 
-      mutable.legend += "Nodes have been slightly moved to prevent overlaps and improve readibility. ";
+      mutable.legend += "Nodes have been slightly moved to minimize overlaps and improve readability. ";
     }
-
   }
+
+  // NODE COLORS (and clusters)
+  // Default stuff
+  settings.node_fill_color = "#999" // Default
+  settings.node_color_from_clusters = false
+  settings.node_clusters = {} // Default
+  settings.draw_cluster_contours = false
+  settings.draw_cluster_fills = false
+	settings.draw_cluster_labels = false
+  let palette = [
+	  {color:"#5ba5b8", name:"blue"},
+	  {color:"#e87fbb", name:"pink"},
+	  {color:"#66b456", name:"green"},
+	  {color:"#f6522b", name:"red"},
+	  {color:"#f9aa26", name:"yellow"}
+  ]
+  let paletteDefault = {color:"#5e676e", name:"grey"}
+  settings.node_clusters["default_color"] = paletteDefault.color
+  settings.node_clusters["default_color_name"] = paletteDefault.name
+
+  // If we use colors and/or clustering, then we need to seek attributes (precomputation)
+  let candidates = [];
+  if ( !(all_nodes_have_colors && mutable.use_original_node_color) || mutable.display_clusters) {
+    // Make a list of possible choices
+    for (let att in diagnosis.nodeAttributes) {
+      let attData = diagnosis.nodeAttributes[att]
+      if (attData.type == "integer" || attData.type == "string") {
+        if (attData.modalitiesInfo.distinct > 1 && attData.modalitiesInfo.distinct<0.5*g.order && att.toLowerCase().indexOf('degree') < 0) {
+          let chance = 1
+          if (attData.type == "integer") {
+            // When integer, there is an ambiguity about whether or not
+            // the attribute is ordinal. It may be categorical.
+            // To reflect that, we act on chance:
+            // The more distinct modalities, the less probable it is that
+            // the attribute is ordinal. But it is always possible.
+            // We modulate the chances with a minimum value of 10%.
+            chance = .1 + .9 * Math.max(0, 1 - (Math.max(0, attData.modalitiesInfo.distinct-5)/(0.5*g.order-5)))
+          }
+          candidates.push({type:'attribute', id:att, chance})
+        }
+      }
+    }
+  }
+  // Node color: do we use original colors?
+  if (all_nodes_have_colors && mutable.use_original_node_color) {
+  	settings.node_color_original = true
+  	mutable.legend += "The node colors are from the original data. ";
+  } else {
+  	settings.node_color_original = false
+
+    // Do we use multiple colors, or just a single one?
+  	if (mutable.different_node_colors && candidates.length > 0) {
+	    let nodeColorPick
+	    let roll = mutable.node_color_attribute_slider * d3.sum(candidates, c => c.chance)
+	    candidates.some(c => {
+	      roll -= c.chance
+	      if (roll <= 0) {
+	        nodeColorPick = c
+	        return true
+	      }
+	      return false
+	    })
+	    mutable.legend += "The node colors depend on the attribute "+nodeColorPick.id+": ";
+	    
+	    settings.node_clusters["attribute_id"] = nodeColorPick.id
+	    settings.node_clusters["modalities"] = {}
+	    // Sort modalities
+	    let modalities = diagnosis.nodeAttributes[nodeColorPick.id].modalities
+	    let sortedModalities = []
+	    for (let m in modalities) {
+	    	sortedModalities.push({m:m, count:modalities[m]})
+	    }
+	    sortedModalities.sort(function(a,b){
+	    	return b.count-a.count
+	    })
+	    sortedModalities.forEach((m,i) => {
+	    	if (i<5) {
+	    		settings.node_clusters["modalities"][m.m] = {
+	    			label: m.m,
+	    			count: m.count,
+	    			color: palette[i].color,
+	    			color_name: palette[i].name,
+	    		}
+			    mutable.legend += "in "+palette[i].name+" is "+m.m+"; ";
+	    	}
+	    })
+	    if (sortedModalities.length>5) {
+		    mutable.legend += "and in "+paletteDefault.name+" are the other modalities. ";
+	    } else {
+		    mutable.legend += "and there are no other modalities. ";
+	    }
+	    settings.node_color_from_clusters = true
+    } else {
+    	if (mutable.dark_mode) {
+	    	settings.node_fill_color = "#a99168"
+	    } else {
+	    	settings.node_fill_color = "#171637"
+	    }
+
+      settings.node_clusters = {}
+
+      mutable.legend += "All nodes are colored the same. ";
+    }    
+  }
+
+
+  // Clusters
+  // We do not display clusters if original node colors were used
+  // (because we don't know how badly it could interfere)
+  if (mutable.display_clusters && !mutable.use_original_node_color) {
+  	// How we display clusters depends on whether or not nodes were colored
+  	if (settings.node_clusters["attribute_id"]) {
+  		// We display clusters for the attribute used for node colors
+  		if (mutable.clusters_as_fills) {
+  			// Fills with cluster labels
+  			settings.draw_cluster_labels = true
+  			settings.draw_cluster_fills = true
+  			mutable.legend += "Gatherings of nodes with the same "+settings.node_clusters["attribute_id"]+" were highlighted by a colorfull shape corresponding to their modality. ";
+  		} else {
+  			// Contours only
+    		settings.draw_cluster_contours = true
+  			mutable.legend += "Gatherings of nodes with the same "+settings.node_clusters["attribute_id"]+" were highlighted by a color contour corresponding to their modality. ";
+  		}
+  	} else if (candidates.length > 0){
+  		// Pick a cluster attribute
+  		let clusterPick
+	    let roll = mutable.node_color_attribute_slider * d3.sum(candidates, c => c.chance)
+	    candidates.some(c => {
+	      roll -= c.chance
+	      if (roll <= 0) {
+	        clusterPick = c
+	        return true
+	      }
+	      return false
+	    })
+	    mutable.legend += "The cluster shapes highlight gatherings of nodes with the same modality for the attribute "+clusterPick.id+": ";
+	    
+	    settings.node_clusters["attribute_id"] = clusterPick.id
+	    settings.node_clusters["modalities"] = {}
+	    // Sort modalities
+	    let modalities = diagnosis.nodeAttributes[clusterPick.id].modalities
+	    let sortedModalities = []
+	    for (let m in modalities) {
+	    	sortedModalities.push({m:m, count:modalities[m]})
+	    }
+	    sortedModalities.sort(function(a,b){
+	    	return b.count-a.count
+	    })
+	    sortedModalities.forEach((m,i) => {
+	    	if (i<5) {
+	    		settings.node_clusters["modalities"][m.m] = {
+	    			label: m.m,
+	    			count: m.count,
+	    			color: palette[i].color,
+	    			color_name: palette[i].name,
+	    		}
+			    mutable.legend += "in "+palette[i].name+" is "+m.m+"; ";
+	    	}
+	    })
+	    if (sortedModalities.length>5) {
+		    mutable.legend += "and in "+paletteDefault.name+" are the other modalities. ";
+	    } else {
+		    mutable.legend += "and there are no other modalities. ";
+	    }
+
+	    if (mutable.clusters_as_fills) {
+  			// Fills with cluster labels
+  			settings.draw_cluster_labels = true
+  			settings.draw_cluster_fills = true
+    		settings.draw_cluster_contours = true
+  			// Note: here we do not show node labels, to focus on clusters.
+    		settings.draw_node_labels = false
+  		} else {
+  			// Contours
+  			settings.draw_cluster_labels = true
+    		settings.draw_cluster_contours = true
+  		}
+  	}
+  }
+
+  /// EDGES
+  settings.edge_high_quality = false
+	settings.edge_weight_as_thickness = true
+  if (mutable.edges_hide) {
+  	settings.draw_edges = false
+  	mutable.legend += "Edges are not displayed. ";
+  } else {
+	  settings.draw_edges = true
+	  if (app._g.directedEdges().length > 0) {
+	  	if (app._g.undirectedEdges().length > 0) {
+		  	mutable.legend += "Undirected edges are drawn as straight lines. Directed edges are displayed as curves. The curvature indicates their direction: from the source node to the target node, they turn clockwise. ";
+	  	} else {
+		  	mutable.legend += "Edges are directed and displayed as curves. The curvature indicates their direction: from the source node to the target node, edges turn clockwise. ";
+	  	}
+	  } else {
+	  	mutable.legend += "Edges are directed and drawn as straight lines. "
+	  }
+
+	  // Are edges weighted?
+	  let edgesAreWeighted = app._g.edges().some(eid => {
+	  	let w = app._g.getEdgeAttribute(eid, "weight")
+	  	return w && w != 1
+	  })
+	  if (edgesAreWeighted) {
+	  	if (mutable.ignore_edge_weight) {
+	  		settings.edge_weight_as_thickness = false
+	  		mutable.legend += "Edges are weighted in the data, but their weight has been ignored for this visualization. "
+	  	} else {
+	  		mutable.legend += "The thickness of the line indicates the weight of the edge. "
+	  	}
+	  }
+
+	  // High quality mode
+	  if (mutable.edges_high_quality) {
+	  	settings.edge_high_quality = true
+	  	mutable.legend += "In a limited area around each node, only the edges connected to that node are displayed. "
+	  }
+  }
+
+  // DARK MODE
+  settings.background_color = "#ffffff"
+	settings.edge_color = "#b6b8c4"
+	settings.edge_thickness = 0.05
+	settings.label_color = "#171637"
+	settings.cluster_label_inner_color = "#ffffff"
+  settings.cc_text_color = "#171637"
+  settings.cc_text_border_color = "#ffffff"
+  settings.cc_line_color = "#171637"
+  settings.cc_grid_line_color = "#d5d3d7"
+  if (mutable.dark_mode) {
+  	settings.background_color = "#000000"
+  	settings.edge_color = "#7c715e"
+  	settings.edge_thickness = 0.08
+  	settings.label_color = "#ffffff"
+  	settings.cluster_label_inner_color = "#000000"
+	  settings.cc_text_color = "#947a8f"
+	  settings.cc_text_border_color = "#000000"
+	  settings.cc_line_color = "#947a8f"
+	  settings.cc_grid_line_color = "#5d4a71"
+  }
+
+
+ 	console.log("Network diagnosis", diagnosis)
+
+  /// OTHER RENDERER SETTINGS
   
+  // Image size and resolution
+  settings.image_width = 200 // in mm. Default: 200mm (fits in a A4 page)
+  settings.image_height = 200
+  settings.output_dpi = 300 // Dots per inch.
+  settings.rendering_dpi = 300 // Default: same as output_dpi. You can over- or under-render to tweak quality and speed.
+  
+  // Tiling:
+  // Tiling allows to build images that would be otherwise too large.
+  // You will have to assemble them by yourself.
+  settings.tile_factor = 1 // Integer, default 1. Number of rows and columns of the grid of exported images.
+  settings.tile_to_render = [0, 0] // Grid coordinates, as integers
+  
+  // Orientation & layout:
+  settings.flip_x = false
+  settings.flip_y = true
+  settings.rotate = 0 // In degrees, clockwise
+  // settings.margin_top    =  6 // in mm
+  // settings.margin_right  =  6 // in mm
+  // settings.margin_bottom = 12 // in mm
+  // settings.margin_left   =  6 // in mm
+  
+  // Layers:
+  // Decide which layers are drawn.
+  // The settings for each layer are below.
+  settings.draw_background = true
+  settings.draw_network_shape_fill = false
+  settings.draw_network_shape_contour = false
+  // settings.draw_cluster_fills = false
+  // settings.draw_cluster_contours = false
+  // settings.draw_cluster_labels = false
+  // settings.draw_edges = true
+  settings.draw_nodes = true
+  // settings.draw_node_labels = true
+  settings.draw_connected_closeness = mutable.draw_grid
+  
+  // Layer: Background
+  // settings.background_color = "#ffffff"
+  
+  // Layer: Connected-closeness
+  // settings.cc_text_color = "#171637"
+  // settings.cc_text_border_color = "#ffffff"
+  settings.cc_font_size = 8 // in pt
+  // settings.cc_line_color = "#171637"
+  // settings.cc_grid_line_color = "#d5d3d7"
+  settings.cc_info_margin_offset = 4.5 // In mm
+  
+  // Layer: Network shape
+  //        (a potato for the whole network)
+  // ...generic structure
+  settings.network_shape_size = 2 // Range: more than 0, default to 1.
+  settings.network_shape_smoothness = 15 // In mm (underlying blur)
+  settings.network_shape_swelling = 0.95 // Range: 0.01 to 0.99 // Balanced: 0.5 // Acts on size
+  // ...shape fill
+  settings.network_shape_fill_alpha = 0.2 // Opacity // Range from 0 to 1
+  settings.network_shape_fill_color = "#f4efec"
+  // ...shape contour
+  settings.network_shape_contour_thickness = 2 // Min: 1
+  settings.network_shape_contour_alpha = 0.8 // Opacity // Range from 0 to 1
+  settings.network_shape_contour_color = "#FFF"
+  
+  // Layer: Clusters
+  //        (a potato per modality of target attribute)
+  // ...generic structure
+  settings.cluster_all_modalities = false // By default, we only use modalities specified in "node_clusters"
+  settings.cluster_node_size_margin = 3 // In mm
+  settings.cluster_shape_smoothness = 10 // In mm (underlying blur)
+  settings.cluster_shape_size = 1 // Range: more than 0, default to 1.
+  settings.cluster_shape_swelling = 0.75 // Range: 0.01 to 0.99 // Balanced: 0.5 // Acts on size
+  // ...cluster fills
+  settings.cluster_fill_alpha = 0.2 // Opacity // Range from 0 to 1
+  settings.cluster_fill_color_by_modality = true // if false, use default color below
+  settings.cluster_fill_color_default = "#8B8B8B"
+  settings.cluster_fill_overlay = true // A different blending mode
+  // ...cluster contours
+  settings.cluster_contour_thickness = .6 // Range: 0 to 10 or more
+  settings.cluster_contour_alpha = 1 // Opacity // Range from 0 to 1
+  settings.cluster_contour_color_by_modality = true // if false, use default color below
+  settings.cluster_contour_color_default = "#8B8B8B"
+  // ...cluster labels
+  settings.cluster_label_colored = true
+  settings.cluster_label_font_min_size = 8 // In pt
+  settings.cluster_label_font_max_size = 14 // In pt
+  settings.cluster_label_font_thickness = .45 // In mm
+  settings.cluster_label_border_thickness = 1.6 // In mm
+  // settings.cluster_label_inner_color = "#ffffff" // Note: here color is on the border
+  
+  // Layer: Edges
+  settings.edge_alpha = 1 // Opacity // Range from 0 to 1
+  settings.edge_curved = true
+  // settings.edge_thickness = 0.05 // in mm
+  // settings.edge_high_quality = false // Halo around nodes // Time-consuming
+  // settings.edge_color = "#b6b8c4"
+  // settings.edge_weight_as_thickness = true
+
+  // Layer: Nodes
+  settings.adjust_voronoi_range = 100 // Factor // Larger node halo
+  settings.node_size = 0.8 // Factor to adjust the nodes drawing size
+  //settings.node_color_original = false // Use the original node color
+  settings.node_stroke_color = "#171637"
+  //settings.node_fill_color = "#171637"
+  
+  // Layer: Node labels
+  // settings.label_color = "#171637"
+  settings.label_max_length = 42 // Number of characters before truncate. Infinity is a valid value.
+  settings.label_font_family = "Raleway"
+  settings.label_font_min_size = 6 // in pt
+  settings.label_font_max_size = 12  // in pt
+  settings.label_font_thickness = .15
+  settings.label_border_thickness = .8 // in mm
+  settings.label_spacing_offset = 1.5 // in mm (prevents label overlap)
+  settings.label_border_color = settings.background_color
+  
+  // Advanced settings
+  settings.voronoi_range = 4 // Halo size in mm
+  settings.voronoi_resolution_max = 1 * Math.pow(10, 7) // in pixel. 10^7 still quick, 10^8 better quality 
+  settings.heatmap_resolution_max = 1 * Math.pow(10, 5) // in pixel. 10^5 quick. 10^7 nice but super slow.
+  settings.heatmap_spreading = 12 // in mm
+
+  let renderer = newRenderer()
+  let canvas = renderer.render(g, settings)
+  return canvas
+
   function diagnose(g) {
     // Get a list of nodes attributes
     var nAttributes = {}
@@ -524,6 +924,7 @@ function renderNetworkMap() {
       edgeAttributes: eAttributes
     }
   }
+
   function getType(str){
     // Adapted from http://stackoverflow.com/questions/16775547/javascript-guess-data-type-from-string
     if(str === undefined) str = 'undefined';
@@ -539,176 +940,6 @@ function renderNetworkMap() {
     else if (isfloat.test(str) || commaFloat.test(str) || dotFloat.test(str)) return "float";
     else return "string";
   }
-  
-  /// RENDERING SETTINGS
-  let settings = {}
-  
-  // Image size and resolution
-  settings.image_width = 200 // in mm. Default: 200mm (fits in a A4 page)
-  settings.image_height = 200
-  settings.output_dpi = 300 // Dots per inch.
-  settings.rendering_dpi = 300 // Default: same as output_dpi. You can over- or under-render to tweak quality and speed.
-  
-  // Tiling:
-  // Tiling allows to build images that would be otherwise too large.
-  // You will have to assemble them by yourself.
-  settings.tile_factor = 1 // Integer, default 1. Number of rows and columns of the grid of exported images.
-  settings.tile_to_render = [0, 0] // Grid coordinates, as integers
-  
-  // Orientation & layout:
-  settings.flip_x = false
-  settings.flip_y = true
-  settings.rotate = 0 // In degrees, clockwise
-  settings.margin_top    =  6 // in mm
-  settings.margin_right  =  6 // in mm
-  settings.margin_bottom = 12 // in mm
-  settings.margin_left   =  6 // in mm
-  
-  // Layers:
-  // Decide which layers are drawn.
-  // The settings for each layer are below.
-  settings.draw_background = true
-  settings.draw_network_shape_fill = false
-  settings.draw_network_shape_contour = false
-  settings.draw_cluster_fills = false
-  settings.draw_cluster_contours = false
-  settings.draw_cluster_labels = false
-  settings.draw_edges = true
-  settings.draw_nodes = true
-  settings.draw_node_labels = true
-  settings.draw_connected_closeness = mutable.draw_grid
-  
-  // Layer: Background
-  settings.background_color = "#ffffff"
-  
-  // Layer: Connected-closeness
-  settings.cc_text_color = "#171637"
-  settings.cc_text_border_color = "#ffffff"
-  settings.cc_font_size = 8 // in pt
-  settings.cc_line_color = "#171637"
-  settings.cc_grid_line_color = "#d5d3d7"
-  settings.cc_info_margin_offset = 4.5 // In mm
-  
-  // Layer: Network shape
-  //        (a potato for the whole network)
-  // ...generic structure
-  settings.network_shape_size = 2 // Range: more than 0, default to 1.
-  settings.network_shape_smoothness = 15 // In mm (underlying blur)
-  settings.network_shape_swelling = 0.95 // Range: 0.01 to 0.99 // Balanced: 0.5 // Acts on size
-  // ...shape fill
-  settings.network_shape_fill_alpha = 0.2 // Opacity // Range from 0 to 1
-  settings.network_shape_fill_color = "#f4efec"
-  // ...shape contour
-  settings.network_shape_contour_thickness = 2 // Min: 1
-  settings.network_shape_contour_alpha = 0.8 // Opacity // Range from 0 to 1
-  settings.network_shape_contour_color = "#FFF"
-  
-  // Layer: Clusters
-  //        (a potato per modality of target attribute)
-  // ...generic structure
-  settings.cluster_all_modalities = false // By default, we only use modalities specified in "node_clusters"
-  settings.cluster_node_size_margin = 3 // In mm
-  settings.cluster_shape_smoothness = 10 // In mm (underlying blur)
-  settings.cluster_shape_size = 1 // Range: more than 0, default to 1.
-  settings.cluster_shape_swelling = 0.75 // Range: 0.01 to 0.99 // Balanced: 0.5 // Acts on size
-  // ...cluster fills
-  settings.cluster_fill_alpha = 0.3 // Opacity // Range from 0 to 1
-  settings.cluster_fill_color_by_modality = true // if false, use default color below
-  settings.cluster_fill_color_default = "#8B8B8B"
-  settings.cluster_fill_overlay = true // A different blending mode
-  // ...cluster contours
-  settings.cluster_contour_thickness = .2 // Range: 0 to 10 or more
-  settings.cluster_contour_alpha = 1 // Opacity // Range from 0 to 1
-  settings.cluster_contour_color_by_modality = true // if false, use default color below
-  settings.cluster_contour_color_default = "#8B8B8B"
-  // ...cluster labels
-  settings.cluster_label_colored = true
-  settings.cluster_label_font_min_size = 14 // In pt
-  settings.cluster_label_font_max_size = 24 // In pt
-  settings.cluster_label_font_thickness = .45 // In mm
-  settings.cluster_label_border_thickness = 1.6 // In mm
-  settings.cluster_label_inner_color = "#ffffff" // Note: here color is on the border
-  
-  // Layer: Edges
-  settings.edge_alpha = 1 // Opacity // Range from 0 to 1
-  settings.edge_curved = false
-  settings.edge_high_quality = false // Halo around nodes // Time-consuming
-  settings.edge_color = "#b6b8c4"
-  
-  // Layer: Nodes
-  settings.adjust_voronoi_range = 100 // Factor // Larger node halo
-  settings.node_size = 0.8 // Factor to adjust the nodes drawing size
-  settings.node_color_original = false // Use the original node color
-  settings.node_stroke_color = "#171637"
-  settings.node_fill_color = "#171637"
-  
-  // Layer: Node labels
-  settings.label_color = "#171637"
-  settings.label_max_length = 42 // Number of characters before truncate. Infinity is a valid value.
-  settings.label_font_family = "Raleway"
-  settings.label_font_min_size = 6 // in pt
-  settings.label_font_max_size = 12  // in pt
-  settings.label_font_thickness = .15
-  settings.label_border_thickness = .8 // in mm
-  settings.label_spacing_offset = 1.5 // in mm (prevents label overlap)
-  settings.label_border_color = settings.background_color
-  
-  // Main clusters and color code:
-  // Clusters are defined by the modalities of a given attribute.
-  // This specifies which is this attribute, and which
-  // modalities have which colors. You can generate this
-  // JSON object with the PREPARE script.
-  settings.node_clusters = {
-    "attribute_id": "modularity_class",
-    "modalities": {
-      "1": {
-        "label": "Sex",
-        "count": 146,
-        "color": "#5ba5b8"
-      },
-      "2": {
-        "label": "Family",
-        "count": 85,
-        "color": "#d4677e"
-      },
-      "6": {
-        "label": "Illness",
-        "count": 156,
-        "color": "#66b456"
-      },
-      "7": {
-        "label": "Domination",
-        "count": 79,
-        "color": "#f9aa26"
-      },
-      "8": {
-        "label": "Culture",
-        "count": 174,
-        "color": "#f6522b"
-      },
-      "5": {
-        "label": "Feelings",
-        "count": 77,
-        "color": "#5e676e"
-      },
-      "4": {
-        "label": "Work",
-        "count": 75,
-        "color": "#5e676e"
-      },
-    },
-    "default_color": "#5e676e"
-  }
-  
-  // Advanced settings
-  settings.voronoi_range = 4 // Halo size in mm
-  settings.voronoi_resolution_max = 1 * Math.pow(10, 7) // in pixel. 10^7 still quick, 10^8 better quality 
-  settings.heatmap_resolution_max = 1 * Math.pow(10, 5) // in pixel. 10^5 quick. 10^7 nice but super slow.
-  settings.heatmap_spreading = 12 // in mm
-
-  let renderer = newRenderer()
-  let canvas = renderer.render(g, settings)
-  return canvas
 }
 
 function computeConnectedCloseness(g, settings) {
@@ -901,6 +1132,14 @@ function randomize_settings() {
   mutable.use_original_scale = true
   mutable.keep_node_positions = true
   mutable.different_node_sizes = false
+  mutable.use_original_node_color = false
+  mutable.different_node_colors = false
+  mutable.display_clusters = false
+  mutable.clusters_as_fills = false
+  mutable.edges_high_quality = false
+  mutable.edges_hide = false
+  mutable.ignore_edge_weight = true
+  mutable.dark_mode = false
   
   mutable.node_size_attribute_slider = 0
   mutable.node_size_slider = 0
@@ -908,26 +1147,34 @@ function randomize_settings() {
   mutable.layout_type_slider = 0
   mutable.layout_gravity_slider = 0
   mutable.layout_quality_but_slower_slider = 0
+  mutable.node_color_attribute_slider = 0
 
-  //return // Comment to use actual randomization
+  // return // Comment to use actual randomization
   
   mutable.draw_grid = Math.random() <= .5
   mutable.use_original_scale = Math.random() <= .25
   mutable.keep_node_positions = Math.random() <= 0.5
   mutable.different_node_sizes = Math.random() <= 0.85
-  
+  mutable.use_original_node_color = Math.random() <= .25
+  mutable.different_node_colors = Math.random() <= 0.85
+  mutable.display_clusters = Math.random() <= 0.33 // It's costly and busy
+  mutable.clusters_as_fills = Math.random() <= 0.5
+  mutable.edges_high_quality = Math.random() <= 0.33 // It's costly
+  mutable.edges_hide = Math.random() <= 0.15 // It's unusual
+  mutable.ignore_edge_weight = Math.random() <= 0.25 // It's only occasionally helpful (weight may be erratic)
+  mutable.dark_mode = Math.random() <= 0.33 // Less print-friendly
+
   mutable.node_size_attribute_slider = Math.random()
   mutable.node_size_slider = Math.random()
   mutable.node_size_spread_slider = Math.random()
   mutable.layout_type_slider = Math.random()
   mutable.layout_gravity_slider = Math.random()
   mutable.layout_quality_but_slower_slider = Math.random()
+  mutable.node_color_attribute_slider = Math.random()
+
+  console.log("Decision settings:", mutable)
 }
 
 function numFormat(n) {
-	if (n>0.001 && n<999) {
-		return n
-	} else {
-		return n.toPrecision(3).replace(/e/, 'x10^')
-	}
+	return (+n.toPrecision(3)).toExponential()
 }

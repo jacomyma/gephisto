@@ -68,7 +68,7 @@ var newRenderer = function(){
     if (ns.settings.draw_connected_closeness) {
       layeredImage = ns.overlayLayer(layeredImage,
         ns.drawConnectedClosenessGrid(ns.settings),
-        "multiply"
+        "source-atop"
       )
       layeredImage = ns.drawLayerOnTop(layeredImage,
         ns.drawConnectedClosenessLegend(ns.settings)
@@ -864,13 +864,12 @@ var newRenderer = function(){
     options = options || {}
     options.cluster_fill_color_by_modality = options.cluster_fill_color_by_modality || false
     options.cluster_fill_color_default = ns.settings.node_clusters.default_color || options.cluster_fill_color_default || "#8BD"
-    options.cluster_fill_alpha = options.cluster_fill_alpha || 0.3
     
     var g = ns.g
     var dim = ns.getRenderingPixelDimensions()
     var ctx = ns.createCanvas().getContext("2d")
     ctx.putImageData(backgroundImg, 0, 0)
-    ctx.globalCompositeOperation = "hard-light"
+    ctx.globalCompositeOperation = "source-atop"
 
     var modalities = ns.getModalities()
     modalities.forEach(modality => {
@@ -889,7 +888,6 @@ var newRenderer = function(){
     options = options || {}
     options.cluster_fill_color_by_modality = options.cluster_fill_color_by_modality || false
     options.cluster_fill_color_default = ns.settings.node_clusters.default_color || options.cluster_fill_color_default || "#8BD"
-    options.cluster_fill_alpha = options.cluster_fill_alpha || 0.3
     
     var g = ns.g
     var dim = ns.getRenderingPixelDimensions()
@@ -1650,10 +1648,11 @@ var newRenderer = function(){
     var options = options || {}
     options.max_edge_count = (options.max_edge_count === undefined)?(Infinity):(options.max_edge_count) // for monitoring only
     options.edge_thickness = options.edge_thickness || 0.05 // in mm
+    options.edge_weight_as_thickness = (options.edge_weight_as_thickness===undefined)?(false):(options.edge_weight_as_thickness)
     options.edge_alpha = (options.edge_alpha===undefined)?(1):(options.edge_alpha) // from 0 to 1
     options.edge_color = options.edge_color || "#303040"
     options.edge_curved = (options.edge_curved===undefined)?(true):(options.edge_curved)
-    options.edge_curvature_deviation_angle = options.edge_curvature_deviation_angle || Math.PI / 12 // in radians
+    options.edge_curvature_deviation_angle = options.edge_curvature_deviation_angle || Math.PI / 10 // in radians
     options.edge_high_quality = options.edge_high_quality || false
     options.edge_path_jitter = (options.edge_path_jitter === undefined)?(0.00):(options.edge_path_jitter) // in mm
     options.edge_path_segment_length = options.edge_high_quality?.2:2 // in mm
@@ -1757,9 +1756,22 @@ var newRenderer = function(){
       ns.report2("...done.")
     }
 
+
+    // Scale thickness to weight
+    var thickness = ns.mm_to_px(options.edge_thickness)
+    var thicknessRatio = 1
+    if (options.edge_weight_as_thickness) {
+      var averageWeight = 0
+      g.edges().forEach(eid => {
+        let w = Math.max(0, g.getEdgeAttribute(eid, "weight") || 1)
+        averageWeight += w
+      })
+      averageWeight /= g.size
+      thicknessRatio = thickness / averageWeight
+    }
+
     // Draw each edge
     var color = d3.color(options.edge_color)
-    var thickness = ns.mm_to_px(options.edge_thickness)
     var jitter = ns.mm_to_px(options.edge_path_jitter)
     var tf = ns.settings.tile_factor
     if (options.display_edges) {
@@ -1769,6 +1781,13 @@ var newRenderer = function(){
       g.edges()
         .filter(function(eid, i_){ return i_ < options.max_edge_count })
         .forEach(function(eid, i_){
+          // Edge weight
+          if (options.edge_weight_as_thickness) {
+            edgeThickness = (Math.max(0, g.getEdgeAttribute(eid, "weight") || 1)) * thicknessRatio
+          } else {
+            edgeThickness = thickness
+          }
+
           if ((i_+1)%10000 == 0) {
             console.log("..."+(i_+1)/1000+"K edges drawn...")
           }
@@ -1783,7 +1802,7 @@ var newRenderer = function(){
           var segCount = Math.ceil(d/iPixStep)
           pi = 0
           path = new Int32Array(3*segCount)
-          if (options.edge_curved) {
+          if (options.edge_curved && g.directed(eid)) {
             let H = d / (2 * Math.tan(options.edge_curvature_deviation_angle))
             let offset
             for (i=0; i<1; i+=iPixStep/d) {
@@ -1858,7 +1877,7 @@ var newRenderer = function(){
             o = path[i+2]/255
 
             if (lastx) {
-              ctx.lineWidth = thickness * (0.9 + 0.2*Math.random())
+              ctx.lineWidth = edgeThickness * (0.9 + 0.2*Math.random())
               color.opacity = (lasto+o)/2
               ctx.beginPath()
               ctx.strokeStyle = color.toString()
@@ -2043,6 +2062,7 @@ var newRenderer = function(){
     options.node_stroke = (options.node_stroke===undefined)?(true):(options.node_stroke)
     options.node_stroke_width = options.node_stroke_width || 0.08 // in mm
     options.node_color_original = (options.node_color_original===undefined)?(false):(options.node_color_original)
+    options.node_color_from_clusters = (options.node_color_from_clusters===undefined)?(false):(options.node_color_from_clusters)
     options.node_fill_color = options.node_fill_color || "#FFF"
     options.node_stroke_color = options.node_stroke_color || "#303040"
     
@@ -2057,6 +2077,15 @@ var newRenderer = function(){
 
       var color = options.node_color_original ? (n.color || options.node_fill_color) : options.node_fill_color
       var radius = Math.max(options.node_size * n.size, stroke_width)
+
+      if (options.node_color_from_clusters) {
+        let m = options.node_clusters.modalities[n[options.node_clusters.attribute_id]]
+        if (m) {
+          color = m.color
+        } else {
+          color = options.node_clusters.default_color
+        }
+      }
 
       ctx.lineCap="round"
       ctx.lineJoin="round"
