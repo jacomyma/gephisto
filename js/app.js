@@ -22,8 +22,7 @@ var app = new Vue({
 	  			let parser = new DOMParser();
 	  			reader.onload = () => {
 	  				var doc = parser.parseFromString(reader.result, "text/xml");
-
-		  			// Try parsing GEXF
+	  				// Try parsing GEXF
 		  			app._g = (() => {
 		  				let g
 		  				try {
@@ -53,6 +52,14 @@ var app = new Vue({
   			app.file = undefined
   			alert("/!\\ Only GEXF files are accepted.")
   		}
+  	},
+  	loadSample: f => {
+  		fetch("data/"+f)
+  			.then(response => response.blob())
+  			.then(blob => {
+			    app.file = new File([blob], f);
+			    app.uploadFile(app.file)
+			  })
   	},
   	acceptPact: () => {
   		app.waitingModalActive = true
