@@ -99,7 +99,19 @@ function renderNetworkMap() {
   let g = app._g.copy()
   
   let diagnosis = diagnose(g)
-  
+
+  // Margins (it depends on some things)
+  settings.margin_top    =  6 // in mm
+  settings.margin_right  =  6 // in mm
+  settings.margin_bottom = 12 // in mm
+  settings.margin_left   =  6 // in mm
+  if (mutable.display_clusters) {
+	  settings.margin_top    = 36 // in mm
+	  settings.margin_right  = 36 // in mm
+	  settings.margin_bottom = 36 // in mm
+	  settings.margin_left   = 36 // in mm
+  }
+
   let all_nodes_have_sizes = true
   let all_nodes_have_coordinates = true
   let all_nodes_have_colors = true
@@ -530,10 +542,10 @@ function renderNetworkMap() {
   settings.flip_x = false
   settings.flip_y = true
   settings.rotate = 0 // In degrees, clockwise
-  settings.margin_top    =  6 // in mm
-  settings.margin_right  =  6 // in mm
-  settings.margin_bottom = 12 // in mm
-  settings.margin_left   =  6 // in mm
+  // settings.margin_top    =  6 // in mm
+  // settings.margin_right  =  6 // in mm
+  // settings.margin_bottom = 12 // in mm
+  // settings.margin_left   =  6 // in mm
   
   // Layers:
   // Decide which layers are drawn.
