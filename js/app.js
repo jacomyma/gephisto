@@ -281,7 +281,7 @@ function renderNetworkMap() {
         return false
       })
 
-      mutable.legend += "Node size depends on the attribute "+pick.id+". ";
+      mutable.legend += "The node sizes depend on the attribute "+pick.id+". ";
       
       // Now let's determine a min and max size
       let min_x = d3.min(g.nodes(), nid => g.getNodeAttribute(nid, 'x'))
@@ -483,7 +483,7 @@ function renderNetworkMap() {
 	      }
 	      return false
 	    })
-	    mutable.legend += "Node color depends on the attribute "+nodeColorPick.id+": ";
+	    mutable.legend += "The node colors depend on the attribute "+nodeColorPick.id+": ";
 	    
 	    settings.node_clusters["attribute_id"] = nodeColorPick.id
 	    settings.node_clusters["modalities"] = {}
