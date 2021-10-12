@@ -54,7 +54,7 @@ var app = new Vue({
   		}
 
   		// Auto accept (for debug)
-  		app.acceptPact()
+  		// app.acceptPact()
   	},
   	loadSample: f => {
   		fetch("data/"+f)
@@ -514,7 +514,11 @@ function renderNetworkMap() {
 	    }
 	    settings.node_color_from_clusters = true
     } else {
-    	settings.node_fill_color = "#171637"
+    	if (mutable.dark_mode) {
+	    	settings.node_fill_color = "#a99168"
+	    } else {
+	    	settings.node_fill_color = "#171637"
+	    }
 
       settings.node_clusters = {}
 
@@ -634,11 +638,32 @@ function renderNetworkMap() {
 	  	settings.edge_high_quality = true
 	  	mutable.legend += "In a limited area around each node, only the edges connected to that node are displayed. "
 	  }
-	  
+  }
+
+  // DARK MODE
+  settings.background_color = "#ffffff"
+	settings.edge_color = "#b6b8c4"
+	settings.edge_thickness = 0.05
+	settings.label_color = "#171637"
+	settings.cluster_label_inner_color = "#ffffff"
+  settings.cc_text_color = "#171637"
+  settings.cc_text_border_color = "#ffffff"
+  settings.cc_line_color = "#171637"
+  settings.cc_grid_line_color = "#d5d3d7"
+  if (mutable.dark_mode) {
+  	settings.background_color = "#000000"
+  	settings.edge_color = "#7c715e"
+  	settings.edge_thickness = 0.08
+  	settings.label_color = "#ffffff"
+  	settings.cluster_label_inner_color = "#000000"
+	  settings.cc_text_color = "#947a8f"
+	  settings.cc_text_border_color = "#000000"
+	  settings.cc_line_color = "#947a8f"
+	  settings.cc_grid_line_color = "#5d4a71"
   }
 
 
- 	console.log("Diagnosis", diagnosis)
+ 	console.log("Network diagnosis", diagnosis)
 
   /// OTHER RENDERER SETTINGS
   
@@ -678,14 +703,14 @@ function renderNetworkMap() {
   settings.draw_connected_closeness = mutable.draw_grid
   
   // Layer: Background
-  settings.background_color = "#ffffff"
+  // settings.background_color = "#ffffff"
   
   // Layer: Connected-closeness
-  settings.cc_text_color = "#171637"
-  settings.cc_text_border_color = "#ffffff"
+  // settings.cc_text_color = "#171637"
+  // settings.cc_text_border_color = "#ffffff"
   settings.cc_font_size = 8 // in pt
-  settings.cc_line_color = "#171637"
-  settings.cc_grid_line_color = "#d5d3d7"
+  // settings.cc_line_color = "#171637"
+  // settings.cc_grid_line_color = "#d5d3d7"
   settings.cc_info_margin_offset = 4.5 // In mm
   
   // Layer: Network shape
@@ -726,16 +751,16 @@ function renderNetworkMap() {
   settings.cluster_label_font_max_size = 14 // In pt
   settings.cluster_label_font_thickness = .45 // In mm
   settings.cluster_label_border_thickness = 1.6 // In mm
-  settings.cluster_label_inner_color = "#ffffff" // Note: here color is on the border
+  // settings.cluster_label_inner_color = "#ffffff" // Note: here color is on the border
   
   // Layer: Edges
   settings.edge_alpha = 1 // Opacity // Range from 0 to 1
   settings.edge_curved = true
+  // settings.edge_thickness = 0.05 // in mm
   // settings.edge_high_quality = false // Halo around nodes // Time-consuming
-  settings.edge_color = "#b6b8c4"
+  // settings.edge_color = "#b6b8c4"
   // settings.edge_weight_as_thickness = true
 
-  
   // Layer: Nodes
   settings.adjust_voronoi_range = 100 // Factor // Larger node halo
   settings.node_size = 0.8 // Factor to adjust the nodes drawing size
@@ -744,7 +769,7 @@ function renderNetworkMap() {
   //settings.node_fill_color = "#171637"
   
   // Layer: Node labels
-  settings.label_color = "#171637"
+  // settings.label_color = "#171637"
   settings.label_max_length = 42 // Number of characters before truncate. Infinity is a valid value.
   settings.label_font_family = "Raleway"
   settings.label_font_min_size = 6 // in pt
@@ -1111,9 +1136,10 @@ function randomize_settings() {
   mutable.different_node_colors = false
   mutable.display_clusters = false
   mutable.clusters_as_fills = false
-  mutable.edges_high_quality = true
+  mutable.edges_high_quality = false
   mutable.edges_hide = false
-  mutable.ignore_edge_weight = false
+  mutable.ignore_edge_weight = true
+  mutable.dark_mode = false
   
   mutable.node_size_attribute_slider = 0
   mutable.node_size_slider = 0
@@ -1123,7 +1149,7 @@ function randomize_settings() {
   mutable.layout_quality_but_slower_slider = 0
   mutable.node_color_attribute_slider = 0
 
-  return // Comment to use actual randomization
+  // return // Comment to use actual randomization
   
   mutable.draw_grid = Math.random() <= .5
   mutable.use_original_scale = Math.random() <= .25
@@ -1136,6 +1162,7 @@ function randomize_settings() {
   mutable.edges_high_quality = Math.random() <= 0.33 // It's costly
   mutable.edges_hide = Math.random() <= 0.15 // It's unusual
   mutable.ignore_edge_weight = Math.random() <= 0.25 // It's only occasionally helpful (weight may be erratic)
+  mutable.dark_mode = Math.random() <= 0.33 // Less print-friendly
 
   mutable.node_size_attribute_slider = Math.random()
   mutable.node_size_slider = Math.random()
@@ -1144,6 +1171,8 @@ function randomize_settings() {
   mutable.layout_gravity_slider = Math.random()
   mutable.layout_quality_but_slower_slider = Math.random()
   mutable.node_color_attribute_slider = Math.random()
+
+  console.log("Decision settings:", mutable)
 }
 
 function numFormat(n) {

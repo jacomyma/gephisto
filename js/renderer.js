@@ -68,7 +68,7 @@ var newRenderer = function(){
     if (ns.settings.draw_connected_closeness) {
       layeredImage = ns.overlayLayer(layeredImage,
         ns.drawConnectedClosenessGrid(ns.settings),
-        "multiply"
+        "source-atop"
       )
       layeredImage = ns.drawLayerOnTop(layeredImage,
         ns.drawConnectedClosenessLegend(ns.settings)
