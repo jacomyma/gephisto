@@ -403,6 +403,8 @@ function renderNetworkMap() {
   settings.node_fill_color = "#999" // Default
   settings.node_color_from_clusters = false
   settings.node_clusters = {} // Default
+  settings.draw_cluster_contours = false
+  settings.draw_cluster_fills = false
   let palette = [
 	  {color:"#5ba5b8", name:"blue"},
 	  {color:"#e87fbb", name:"pink"},
@@ -480,7 +482,11 @@ function renderNetworkMap() {
 			    mutable.legend += "in "+palette[i].name+" is "+m.m+"; ";
 	    	}
 	    })
-	    mutable.legend += "and in "+paletteDefault.name+" are the other modalities. ";
+	    if (sortedModalities.length>5) {
+		    mutable.legend += "and in "+paletteDefault.name+" are the other modalities. ";
+	    } else {
+		    mutable.legend += "and there are no other modalities. ";
+	    }
 	    settings.node_color_from_clusters = true
     } else {
     	settings.node_fill_color = "#171637"
@@ -489,6 +495,18 @@ function renderNetworkMap() {
 
       mutable.legend += "All nodes are colored the same. ";
     }
+
+    if (mutable.display_clusters) {
+    	if (settings.node_clusters["attribute_id"]) {
+    		if (mutable.clusters_as_fills) {
+    			settings.draw_cluster_fills = true
+    		} else {
+	    		settings.draw_cluster_contours = true
+    		}
+    	}
+    }
+
+
 
   	console.log("Diagnosis", diagnosis)
     
@@ -523,8 +541,8 @@ function renderNetworkMap() {
   settings.draw_background = true
   settings.draw_network_shape_fill = false
   settings.draw_network_shape_contour = false
-  settings.draw_cluster_fills = false
-  settings.draw_cluster_contours = false
+  // settings.draw_cluster_fills = false
+  // settings.draw_cluster_contours = false
   settings.draw_cluster_labels = false
   settings.draw_edges = true
   settings.draw_nodes = true
@@ -565,12 +583,12 @@ function renderNetworkMap() {
   settings.cluster_shape_size = 1 // Range: more than 0, default to 1.
   settings.cluster_shape_swelling = 0.75 // Range: 0.01 to 0.99 // Balanced: 0.5 // Acts on size
   // ...cluster fills
-  settings.cluster_fill_alpha = 0.3 // Opacity // Range from 0 to 1
+  settings.cluster_fill_alpha = 0.2 // Opacity // Range from 0 to 1
   settings.cluster_fill_color_by_modality = true // if false, use default color below
   settings.cluster_fill_color_default = "#8B8B8B"
   settings.cluster_fill_overlay = true // A different blending mode
   // ...cluster contours
-  settings.cluster_contour_thickness = .2 // Range: 0 to 10 or more
+  settings.cluster_contour_thickness = .4 // Range: 0 to 10 or more
   settings.cluster_contour_alpha = 1 // Opacity // Range from 0 to 1
   settings.cluster_contour_color_by_modality = true // if false, use default color below
   settings.cluster_contour_color_default = "#8B8B8B"
@@ -959,9 +977,10 @@ function randomize_settings() {
   mutable.use_original_scale = true
   mutable.keep_node_positions = true
   mutable.different_node_sizes = false
-  mutable.different_node_colors = true
-  mutable.display_clusters = false
   mutable.use_original_node_color = false
+  mutable.different_node_colors = true
+  mutable.display_clusters = true
+  mutable.clusters_as_fills = true
   
   mutable.node_size_attribute_slider = 0
   mutable.node_size_slider = 0
@@ -977,9 +996,10 @@ function randomize_settings() {
   mutable.use_original_scale = Math.random() <= .25
   mutable.keep_node_positions = Math.random() <= 0.5
   mutable.different_node_sizes = Math.random() <= 0.85
+  mutable.use_original_node_color = Math.random() <= .25
   mutable.different_node_colors = Math.random() <= 0.85
   mutable.display_clusters = Math.random() <= 0.25
-  mutable.use_original_node_color = Math.random() <= .25
+  mutable.clusters_as_fills = Math.random() <= 0.5
 
   mutable.node_size_attribute_slider = Math.random()
   mutable.node_size_slider = Math.random()

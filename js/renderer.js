@@ -864,13 +864,12 @@ var newRenderer = function(){
     options = options || {}
     options.cluster_fill_color_by_modality = options.cluster_fill_color_by_modality || false
     options.cluster_fill_color_default = ns.settings.node_clusters.default_color || options.cluster_fill_color_default || "#8BD"
-    options.cluster_fill_alpha = options.cluster_fill_alpha || 0.3
     
     var g = ns.g
     var dim = ns.getRenderingPixelDimensions()
     var ctx = ns.createCanvas().getContext("2d")
     ctx.putImageData(backgroundImg, 0, 0)
-    ctx.globalCompositeOperation = "hard-light"
+    ctx.globalCompositeOperation = "source-atop"
 
     var modalities = ns.getModalities()
     modalities.forEach(modality => {
@@ -889,7 +888,6 @@ var newRenderer = function(){
     options = options || {}
     options.cluster_fill_color_by_modality = options.cluster_fill_color_by_modality || false
     options.cluster_fill_color_default = ns.settings.node_clusters.default_color || options.cluster_fill_color_default || "#8BD"
-    options.cluster_fill_alpha = options.cluster_fill_alpha || 0.3
     
     var g = ns.g
     var dim = ns.getRenderingPixelDimensions()
