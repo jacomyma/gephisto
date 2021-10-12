@@ -77,8 +77,8 @@ var app = new Vue({
   				document.getElementById('renderingArea').appendChild(app.canvas)
   				app.waitingState = false
   				app.waitingModalActive = false
-  			}, 200)
-  		}, 100);
+  			}, 500)
+  		}, 250);
   	},
   	undo: () => {
   		app.renderedState = false
@@ -597,6 +597,47 @@ function renderNetworkMap() {
   	}
   }
 
+  /// EDGES
+  settings.edge_high_quality = false
+	settings.edge_weight_as_thickness = true
+  if (mutable.edges_hide) {
+  	settings.draw_edges = false
+  	mutable.legend += "Edges are not displayed. ";
+  } else {
+	  settings.draw_edges = true
+	  if (app._g.directedEdges().length > 0) {
+	  	if (app._g.undirectedEdges().length > 0) {
+		  	mutable.legend += "Undirected edges are drawn as straight lines. Directed edges are displayed as curves. The curvature indicates their direction: from the source node to the target node, they turn clockwise. ";
+	  	} else {
+		  	mutable.legend += "Edges are directed and displayed as curves. The curvature indicates their direction: from the source node to the target node, edges turn clockwise. ";
+	  	}
+	  } else {
+	  	mutable.legend += "Edges are directed and drawn as straight lines. "
+	  }
+
+	  // Are edges weighted?
+	  let edgesAreWeighted = app._g.edges().some(eid => {
+	  	let w = app._g.getEdgeAttribute(eid, "weight")
+	  	return w && w != 1
+	  })
+	  if (edgesAreWeighted) {
+	  	if (mutable.ignore_edge_weight) {
+	  		settings.edge_weight_as_thickness = false
+	  		mutable.legend += "Edges are weighted in the data, but their weight has been ignored for this visualization. "
+	  	} else {
+	  		mutable.legend += "The thickness of the line indicates the weight of the edge. "
+	  	}
+	  }
+
+	  // High quality mode
+	  if (mutable.edges_high_quality) {
+	  	settings.edge_high_quality = true
+	  	mutable.legend += "In a limited area around each node, only the edges connected to that node are displayed. "
+	  }
+	  
+  }
+
+
  	console.log("Diagnosis", diagnosis)
 
   /// OTHER RENDERER SETTINGS
@@ -631,7 +672,7 @@ function renderNetworkMap() {
   // settings.draw_cluster_fills = false
   // settings.draw_cluster_contours = false
   // settings.draw_cluster_labels = false
-  settings.draw_edges = true
+  // settings.draw_edges = true
   settings.draw_nodes = true
   // settings.draw_node_labels = true
   settings.draw_connected_closeness = mutable.draw_grid
@@ -689,9 +730,11 @@ function renderNetworkMap() {
   
   // Layer: Edges
   settings.edge_alpha = 1 // Opacity // Range from 0 to 1
-  settings.edge_curved = false
-  settings.edge_high_quality = false // Halo around nodes // Time-consuming
+  settings.edge_curved = true
+  // settings.edge_high_quality = false // Halo around nodes // Time-consuming
   settings.edge_color = "#b6b8c4"
+  // settings.edge_weight_as_thickness = true
+
   
   // Layer: Nodes
   settings.adjust_voronoi_range = 100 // Factor // Larger node halo
@@ -1068,6 +1111,9 @@ function randomize_settings() {
   mutable.different_node_colors = false
   mutable.display_clusters = false
   mutable.clusters_as_fills = false
+  mutable.edges_high_quality = true
+  mutable.edges_hide = false
+  mutable.ignore_edge_weight = false
   
   mutable.node_size_attribute_slider = 0
   mutable.node_size_slider = 0
@@ -1085,8 +1131,11 @@ function randomize_settings() {
   mutable.different_node_sizes = Math.random() <= 0.85
   mutable.use_original_node_color = Math.random() <= .25
   mutable.different_node_colors = Math.random() <= 0.85
-  mutable.display_clusters = Math.random() <= 0.33
+  mutable.display_clusters = Math.random() <= 0.33 // It's costly and busy
   mutable.clusters_as_fills = Math.random() <= 0.5
+  mutable.edges_high_quality = Math.random() <= 0.33 // It's costly
+  mutable.edges_hide = Math.random() <= 0.15 // It's unusual
+  mutable.ignore_edge_weight = Math.random() <= 0.25 // It's only occasionally helpful (weight may be erratic)
 
   mutable.node_size_attribute_slider = Math.random()
   mutable.node_size_slider = Math.random()
