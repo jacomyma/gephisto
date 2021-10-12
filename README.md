@@ -1,2 +1,4 @@
-# gephisto
-A one-click online Gephi experiment
+# Gephisto
+A one-click online Gephi experiment.
+
+https://jacomyma.github.io/gephisto/

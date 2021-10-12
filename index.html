@@ -42,6 +42,8 @@
 </head>
 
 <body>
+  <div id="fingerprint-overlay" style="position: relative;">
+  </div>
   <section class="section" id="app">
     <!-- UI for everything except rendering -->
     <div class="container" v-if="!renderedState">
@@ -51,6 +53,7 @@
         </h1>
         <p class="subtitle">
           Get a <strong>network map</strong> in one click.
+          <br><small style="opacity:0.666">(but it's different each time)</small>
         </p>
         <br>
       </div>
@@ -58,17 +61,10 @@
         <div class="column is-hidden-mobile">
           <h1 class="title" style="color:#ff85c2">
             Gephisto
-
-            <!-- Test stuff -->
-            <!-- <span class="is-hidden-tablet">mobile</span>
-            <span class="is-hidden-mobile is-hidden-desktop">tablet</span>
-            <span class="is-hidden-mobile is-hidden-tablet-only is-hidden-widescreen">desktop</span>
-            <span class="is-hidden-mobile is-hidden-tablet-only is-hidden-desktop-only is-hidden-fullhd">widescreen</span>
-            <span class="is-hidden-mobile is-hidden-tablet-only is-hidden-desktop-only is-hidden-widescreen-only">full HD</span> -->
-
           </h1>
           <p class="subtitle">
             Get a <strong>network map</strong> in one click.
+            <br><small style="opacity:0.666">(but it's different each time)</small>
           </p>
         </div>
         <div class="column is-12-mobile is-three-quarters-tablet is-three-fifths-desktop is-two-fifths-widescreen">
@@ -122,28 +118,25 @@
 
             <!-- CONFIRMATION STATE -->
             <div v-if="file && !waitingState">
-              <div class="block">
+              <div class="block is-size-5">
                 <p>
-                  We, the all-powerful Gephisto, have today accepted the pact with <code>User</code>.
-                  We are committed to making all the choices a network map implies.
+                  <em>Here is the deal with Gephisto:</em>
+                  <br>He makes all the decisions, but <strong>differently</strong> each time.
                 </p>
               </div>
-              <div class="block">
+              <div class="block is-size-6">
                 <p>
-                  By virtue of this pact, <code>User</code> will live happily and get critical of network analysis when the time comes.
+                  Indeed, there is not just one way to make a network map.
+                </p>
+                <p>
+                  If you want to make the decisions yourself, use another tool like <a href="https://gephi.org">Gephi</a>.
                 </p>
               </div>
-              <div class="block">
-                <p class="has-text-right">
-                  <em>~Signed by~
-                  <br>
-                  <strong><span style="opacity: 0.1">66</span>6ephisto</strong></em>
-                </p>
-              </div>
+              <br><br><br>
               <div class="block">
                 <b-button @click="acceptPact"
-                  class="button is-large is-fullwidth is-success is-focused">
-                  OK &nbsp;<i style="opacity:0.6">(sign)</i>
+                  class="button is-large is-fullwidth is-danger is-focused">
+                  OK &nbsp;<i style="opacity:0.6">(sign in blood)</i>
                 </b-button>
               </div>
             </div>
@@ -173,15 +166,15 @@
           class="button is-success is-fullwidth"
           icon-left="download"
         >
-          DOWNLOAD</i>
+          DOWNLOAD
         </b-button>
         <br>
 
-        <b-button @click="undo"
-          class="button is-success is-light is-fullwidth"
-          icon-left="undo"
+        <b-button @click="refresh"
+          class="button is-danger is-light is-fullwidth"
+          icon-left="refresh"
         >
-          UNDO</i>
+          DO IT AGAIN
         </b-button>
         <br>
 

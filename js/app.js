@@ -12,7 +12,8 @@ var app = new Vue({
 		file: undefined,
 		waitingModalActive: false,
 		waitingState: false,
-		renderedState: false
+		renderedState: false,
+		fingerprint: undefined
   },
   methods: {
   	uploadFile: f => {
@@ -64,24 +65,41 @@ var app = new Vue({
 			    app.uploadFile(app.file)
 			  })
   	},
-  	acceptPact: () => {
-  		app.waitingModalActive = true
-  		app.waitingState = true
-  		setTimeout(() => {
-  			app.canvas = renderNetworkMap()
-  			app.legend = mutable.legend
-  			app.renderedState = true
-  			setTimeout(() => {
-  				app.canvas.style.width = "100%"
-  				document.getElementById('renderingArea').innerHTML = ""
-  				document.getElementById('renderingArea').appendChild(app.canvas)
-  				app.waitingState = false
-  				app.waitingModalActive = false
-  			}, 500)
+  	acceptPact: (e) => {
+  		// FX: fingerprint
+  		app.fingerprint = document.createElement("img")
+			app.fingerprint.src = "img/fingerprint.png"
+			document.getElementById('fingerprint-overlay').appendChild(app.fingerprint)
+			app.fingerprint.style.position = 'absolute'
+			app.fingerprint.style.zIndex = 10
+			app.fingerprint.style.width = '5em'
+			app.fingerprint.style.marginLeft = "-2.5em"
+			app.fingerprint.style.marginTop = "-2.5em"
+			app.fingerprint.style.transform = "rotate("+Math.floor(-20+Math.random()*40)+"deg)"
+  		app.fingerprint.style.left = (e.clientX)+"px"
+  		app.fingerprint.style.top = (e.clientY)+"px"
+
+  		setTimeout(()=>{
+	  		app.waitingModalActive = true
+	  		app.waitingState = true
+	  		setTimeout(() => {
+					document.getElementById('fingerprint-overlay').removeChild(app.fingerprint)
+	  			app.canvas = renderNetworkMap()
+	  			app.legend = mutable.legend
+	  			app.renderedState = true
+	  			setTimeout(() => {
+	  				app.canvas.style.width = "100%"
+	  				document.getElementById('renderingArea').innerHTML = ""
+	  				document.getElementById('renderingArea').appendChild(app.canvas)
+	  				app.waitingState = false
+	  				app.waitingModalActive = false
+	  			}, 100)
+	  		}, 250);
   		}, 250);
   	},
-  	undo: () => {
-  		app.renderedState = false
+  	refresh: (e) => {
+  		// app.renderedState = false
+  		app.acceptPact(e)
   	},
   	downloadCanvas: () => {
   		app.canvas.toBlob(function(blob) {
@@ -90,8 +108,6 @@ var app = new Vue({
   	}
   }
 })
-
-
 
 
 /// FUNCTIONS
