@@ -40,7 +40,7 @@
       max-height: 500px;
       min-width: 352.682px;
       max-width: 352.682px;
-      top: 120px;
+      top: 180px;
       left: -16.4em;
       position: absolute;
       z-index: 10;
@@ -59,8 +59,7 @@
           Gephisto
         </h1>
         <p class="subtitle">
-          Get a <strong>network map</strong> in one click.
-          <br><small style="opacity:0.666">(but it's different each time)</small>
+          grants you a <strong>network map</strong> in one click.
         </p>
         <br>
       </div>
@@ -70,15 +69,14 @@
             Gephisto
           </h1>
           <p class="subtitle">
-            Get a <strong>network map</strong> in one click.
-            <br><small style="opacity:0.666">(but it's different each time)</small>
+            grants you a <strong>network map</strong> in one click.
           </p>
         </div>
         <div class="column is-12-mobile is-three-quarters-tablet is-three-fifths-desktop is-two-fifths-widescreen">
           <div class="gephisto-hipster is-unselectable">
             <img src="img/gephisto-hipster.png">
           </div>
-          <div class="box" style="min-height: 300px;">
+          <div class="box">
             <!-- UPLOAD STATE -->
             <div v-if="!file && !waitingState">
               <b-field>
@@ -86,13 +84,15 @@
                   v-model="file"
                   expanded
                   v-on:input="uploadFile"
+                  style="min-height:280px"
                   drag-drop>
                   <section class="section">
                     <div class="content has-text-centered">
                       <p>
                         <b-icon
                           icon="upload"
-                          size="is-large">
+                          size="is-large"
+                          style="margin-top: 24px">
                         </b-icon>
                       </p>
                       <p>
@@ -131,23 +131,30 @@
             <div v-if="file && !waitingState">
               <div class="block is-size-5">
                 <p>
-                  <em>Here is the deal with Gephisto:</em>
-                  <br>He makes all the decisions, but <strong>differently</strong> each time.
+                  I grant you <b>one great network visualization</b> in one click.
+                  Not knowing what you want, I will make <em>arbitrary</em> calls when I need to.
+                  Don't worry, my calls are always great, as far as anyone knows…
                 </p>
               </div>
-              <div class="block is-size-6">
-                <p>
-                  Indeed, there is not just one way to make a network map.
-                </p>
-                <p>
-                  If you want to make the decisions yourself, use another tool like <a href="https://gephi.org">Gephi</a>.
-                </p>
+              <br>
+              <div class="block has-text-right">
+                <div style="height:66px">
+                  <img src="img/gephisto-signature.jpg" style="height: 66px; opacity:0.8">
+                </div>
+                <small>(else you can always use <a href="https://gephi.org">Gephi</a>)</small>
               </div>
-              <br><br><br>
+              <br>
               <div class="block">
                 <b-button @click="acceptPact"
                   class="button is-large is-fullwidth is-danger is-focused">
                   OK &nbsp;<i style="opacity:0.6">(sign in blood)</i>
+                </b-button>
+              </div>
+              <div class="block" v-if="canvas">
+                <b-button @click="redo"
+                  icon-left="redo"
+                  class="button is-large is-fullwidth is-light is-focused">
+                  REDO
                 </b-button>
               </div>
             </div>
@@ -181,11 +188,19 @@
         </b-button>
         <br>
 
+        <b-button @click="undo"
+          class="button is-light is-fullwidth"
+          icon-left="undo"
+        >
+          UNDO
+        </b-button>
+        <br>
+
         <b-button @click="refresh"
           class="button is-danger is-light is-fullwidth"
           icon-left="refresh"
         >
-          DO IT AGAIN
+          MAKE ANOTHER GREAT VIZ
         </b-button>
         <br>
 
