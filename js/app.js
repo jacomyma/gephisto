@@ -13,7 +13,8 @@ var app = new Vue({
 		waitingModalActive: false,
 		waitingState: false,
 		renderedState: false,
-		fingerprint: undefined
+		fingerprint: undefined,
+    canvas: false
   },
   methods: {
   	uploadFile: f => {
@@ -98,9 +99,18 @@ var app = new Vue({
   		}, 250);
   	},
   	refresh: (e) => {
-  		// app.renderedState = false
   		app.acceptPact(e)
   	},
+    undo: (e) => {
+      app.renderedState = false
+    },
+    redo: (e) => {
+      app.renderedState = true
+      setTimeout(() => {
+        document.getElementById('renderingArea').innerHTML = ""
+        document.getElementById('renderingArea').appendChild(app.canvas)
+      }, 0)
+    },
   	downloadCanvas: () => {
   		app.canvas.toBlob(function(blob) {
         saveAs(blob, "Gephisto Network Map.png");
@@ -306,7 +316,7 @@ function renderNetworkMap() {
       let max_y = d3.max(g.nodes(), nid => g.getNodeAttribute(nid, 'y'))
       // Rationale for the min size:
       // if the network were occupying a maximal area in a 20cm x 20cm image at 300dpi (2362px),
-      // then the minimal node radius should correspond to a punctiation dot
+      // then the minimal node radius should correspond to a punctuation dot
       // at a font size of 12pt, which is around 3 pixels.
       let min_size = 3 * Math.max(max_x-min_x, max_y-min_y) / 2362
       // ...but this just being a heuristic, we add some variability.
