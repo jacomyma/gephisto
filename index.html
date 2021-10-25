@@ -45,13 +45,16 @@
       position: absolute;
       z-index: 10;
     }
+    [v-cloak] {
+      display: none;
+    }
   </style>
 </head>
 
 <body>
   <div id="fingerprint-overlay" style="position: relative;">
   </div>
-  <section class="section" id="app">
+  <section class="section" id="app" v-cloak>
     <!-- UI for everything except rendering -->
     <div class="container" v-if="!renderedState">
       <div class="is-hidden-tablet">
@@ -214,7 +217,7 @@
     </div>
 
     <!-- WAITING MODAL -->
-    <b-modal v-model="waitingModalActive" :width="480" scroll="keep" :can-cancel="false">
+    <b-modal v-model="waitingModalActive" :width="480" scroll="keep" :can-cancel="false" v-cloak>
       <div class="card">
         <div class="card-image">
             <figure class="image is-1by1">
