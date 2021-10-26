@@ -35,22 +35,27 @@ var app = new Vue({
 							    let n = g.getNodeAttributes(nid);
 							    n.y = -n.y;
 							  });
+                gtag('event', 'upload_gexf', {
+                  'event_category': 'interaction',
+                  'event_label': 'successful',
+                  'value': f.name
+                });
 							} catch(e) {
 	      				console.error(e)
 								g = undefined
 								app.file = undefined
 								alert("/!\\ Arg, something is wrong with this file...")
+                gtag('event', 'upload_gexf', {
+                  'event_category': 'interaction',
+                  'event_label': 'parsing_failed',
+                  'value': f.name
+                });
 							}
 						  return g;
 						})();
 
 	  			};
 	        reader.readAsText(f);
-          gtag('event', 'upload_gexf', {
-            'event_category': 'interaction',
-            'event_label': 'successful',
-            'value': f.name
-          });
 	      } catch(e) {
 	      	app.file = undefined
 	      	alert("/!\\ Oops, there is a problem...")
@@ -61,7 +66,54 @@ var app = new Vue({
             'value': f.name
           });
 	      }
-  		} else {
+  		} else if (f.name.split('.').pop().toLowerCase() == "graphml") {
+        try {
+          let reader = new FileReader();
+          let parser = new DOMParser();
+          reader.onload = () => {
+            var doc = parser.parseFromString(reader.result, "text/xml");
+            // Try parsing GEXF
+            app._g = (() => {
+              let g
+              try {
+                g = GraphologyLibrary.graphml.parse(Graph, doc);
+                // We need to invert y since the convention is different
+                g.nodes().forEach(nid=>{
+                  let n = g.getNodeAttributes(nid);
+                  n.y = -n.y;
+                });
+                gtag('event', 'upload_graphml', {
+                  'event_category': 'interaction',
+                  'event_label': 'successful',
+                  'value': f.name
+                });
+              } catch(e) {
+                console.error(e)
+                g = undefined
+                app.file = undefined
+                alert("/!\\ Arg, something is wrong with this file...")
+                gtag('event', 'upload_graphml', {
+                  'event_category': 'interaction',
+                  'event_label': 'parsing_failed',
+                  'value': f.name
+                });
+              }
+              return g;
+            })();
+
+          };
+          reader.readAsText(f);
+        } catch(e) {
+          app.file = undefined
+          alert("/!\\ Oops, there is a problem...")
+          console.error(e)
+          gtag('event', 'upload_graphml', {
+            'event_category': 'interaction',
+            'event_label': 'failed',
+            'value': f.name
+          });
+        }
+      } else {
   			app.file = undefined
   			alert("/!\\ Only GEXF files are accepted.")
   		}

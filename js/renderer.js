@@ -1802,7 +1802,7 @@ var newRenderer = function(){
           var segCount = Math.ceil(d/iPixStep)
           pi = 0
           path = new Int32Array(3*segCount)
-          if (options.edge_curved && g.directed(eid)) {
+          if (options.edge_curved && g.isDirected(eid)) {
             let H = d / (2 * Math.tan(options.edge_curvature_deviation_angle))
             let offset
             for (i=0; i<1; i+=iPixStep/d) {
