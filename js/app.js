@@ -14,7 +14,8 @@ var app = new Vue({
 		waitingState: false,
 		renderedState: false,
 		fingerprint: undefined,
-    canvas: false
+    canvas: false,
+    renderings: 0
   },
   methods: {
   	uploadFile: f => {
@@ -45,10 +46,20 @@ var app = new Vue({
 
 	  			};
 	        reader.readAsText(f);
+          gtag('event', 'upload_gexf', {
+            'event_category': 'interaction',
+            'event_label': 'successful',
+            'value': f.name
+          });
 	      } catch(e) {
 	      	app.file = undefined
 	      	alert("/!\\ Oops, there is a problem...")
 	      	console.error(e)
+          gtag('event', 'upload_gexf', {
+            'event_category': 'interaction',
+            'event_label': 'failed',
+            'value': f.name
+          });
 	      }
   		} else {
   			app.file = undefined
@@ -66,7 +77,7 @@ var app = new Vue({
 			    app.uploadFile(app.file)
 			  })
   	},
-  	acceptPact: (e) => {
+  	_acceptPact: (e) => {
   		// FX: fingerprint
   		app.fingerprint = document.createElement("img")
 			app.fingerprint.src = "img/fingerprint.png"
@@ -79,13 +90,19 @@ var app = new Vue({
 			app.fingerprint.style.transform = "rotate("+Math.floor(-20+Math.random()*40)+"deg)"
   		app.fingerprint.style.left = (e.clientX)+"px"
   		app.fingerprint.style.top = (e.clientY)+"px"
-
+      
   		setTimeout(()=>{
 	  		app.waitingModalActive = true
 	  		app.waitingState = true
 	  		setTimeout(() => {
 					document.getElementById('fingerprint-overlay').removeChild(app.fingerprint)
 	  			app.canvas = renderNetworkMap()
+          gtag('event', 'new_rendering', {
+            'event_category': 'interaction',
+            'event_label': 'successful',
+            'value': ++app.renderings
+          });
+
 	  			app.legend = mutable.legend
 	  			app.renderedState = true
 	  			setTimeout(() => {
@@ -98,11 +115,24 @@ var app = new Vue({
 	  		}, 250);
   		}, 250);
   	},
+    acceptPact: (e) => {
+      gtag('event', 'sign_the_deal', {
+        'event_category': 'interaction'
+      });
+
+      app._acceptPact(e)
+    },
   	refresh: (e) => {
-  		app.acceptPact(e)
+      gtag('event', 'refresh_rendering', {
+        'event_category': 'interaction'
+      });
+  		app._acceptPact(e)
   	},
     undo: (e) => {
       app.renderedState = false
+      gtag('event', 'undo', {
+        'event_category': 'interaction'
+      });
     },
     redo: (e) => {
       app.renderedState = true
@@ -110,11 +140,17 @@ var app = new Vue({
         document.getElementById('renderingArea').innerHTML = ""
         document.getElementById('renderingArea').appendChild(app.canvas)
       }, 0)
+      gtag('event', 'redo', {
+        'event_category': 'interaction'
+      });
     },
   	downloadCanvas: () => {
   		app.canvas.toBlob(function(blob) {
         saveAs(blob, "Gephisto Network Map.png");
       })
+      gtag('event', 'download_png', {
+        'event_category': 'interaction'
+      });
   	}
   }
 })
