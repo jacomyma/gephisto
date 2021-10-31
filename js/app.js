@@ -756,9 +756,11 @@ function renderNetworkMap() {
 
   // DARK MODE
   settings.background_color = "#ffffff"
+  settings.legend_background_color = "#ffffff"
 	settings.edge_color = "#b6b8c4"
 	settings.edge_thickness = 0.05
 	settings.label_color = "#171637"
+  settings.legend_font_color = "#171637"
 	settings.cluster_label_inner_color = "#ffffff"
   settings.cc_text_color = "#171637"
   settings.cc_text_border_color = "#ffffff"
@@ -766,9 +768,11 @@ function renderNetworkMap() {
   settings.cc_grid_line_color = "#d5d3d7"
   if (mutable.dark_mode) {
   	settings.background_color = "#000000"
+    settings.legend_background_color = "#000000"
   	settings.edge_color = "#7c715e"
   	settings.edge_thickness = 0.08
   	settings.label_color = "#ffffff"
+    settings.legend_font_color = "#ffffff"
   	settings.cluster_label_inner_color = "#000000"
 	  settings.cc_text_color = "#947a8f"
 	  settings.cc_text_border_color = "#000000"
@@ -815,6 +819,7 @@ function renderNetworkMap() {
   settings.draw_nodes = true
   // settings.draw_node_labels = true
   settings.draw_connected_closeness = mutable.draw_grid
+  settings.draw_text_legend_extension = true
   
   // Layer: Background
   // settings.background_color = "#ffffff"
@@ -893,6 +898,13 @@ function renderNetworkMap() {
   settings.label_spacing_offset = 1.5 // in mm (prevents label overlap)
   settings.label_border_color = settings.background_color
   
+  // Layer: Text legend extension
+  // settings.legend_background_color = "#FFF"
+  settings.legend_font_family = "Raleway"
+  settings.legend_font_size = 11 // in pt
+  // settings.legend_font_color = "#171637"
+  settings.legend_text = mutable.legend + " Made by Gephisto."
+
   // Advanced settings
   settings.voronoi_range = 4 // Halo size in mm
   settings.voronoi_resolution_max = 1 * Math.pow(10, 7) // in pixel. 10^7 still quick, 10^8 better quality 
@@ -900,8 +912,8 @@ function renderNetworkMap() {
   settings.heatmap_spreading = 12 // in mm
 
   let renderer = newRenderer()
-  let canvas = renderer.render(g, settings)
-  return canvas
+  let map_canvas = renderer.render(g, settings)
+  return map_canvas
 
   function diagnose(g) {
     // Get a list of nodes attributes
