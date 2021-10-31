@@ -93,22 +93,57 @@ var newRenderer = function(){
       )
     }
 
+    // Draw text legend extension
+    var legendImage
+    if (ns.settings.draw_text_legend_extension) {
+      /*layeredImage = ns.drawLayerOnTop(layeredImage,
+        ns.drawTextLegend(ns.settings)
+      )*/
+      legendImage = ns.drawTextLegend(ns.settings)
+    }
+
     // Build final canvas
+    var finalMapCanvas
     var renderingCanvas = ns.createCanvas()
     renderingCanvas.getContext("2d").putImageData(layeredImage, 0, 0)
     if (ns.settings.output_dpi == ns.settings.rendering_dpi) {
-      return renderingCanvas
+      finalMapCanvas = renderingCanvas
+    } else {
+      var resizedCanvas = ns.createCanvas()
+      let outputWidth = Math.floor(ns.settings.image_width * ns.settings.output_dpi * 0.0393701 / ns.settings.tile_factor)
+      let outputHeight = Math.floor(ns.settings.image_height * ns.settings.output_dpi * 0.0393701 / ns.settings.tile_factor)
+      resizedCanvas.width = outputWidth
+      resizedCanvas.height = outputHeight
+      let ctx = resizedCanvas.getContext("2d")
+      ctx.imageSmoothingEnabled = true
+      ctx.imageSmoothingQuality = "high"
+      ctx.drawImage(renderingCanvas, 0, 0, outputWidth, outputHeight);
+      finalMapCanvas = resizedCanvas
     }
-    var canvas = ns.createCanvas()
-    let outputWidth = Math.floor(ns.settings.image_width * ns.settings.output_dpi * 0.0393701 / ns.settings.tile_factor)
-    let outputHeight = Math.floor(ns.settings.image_height * ns.settings.output_dpi * 0.0393701 / ns.settings.tile_factor)
-    canvas.width = outputWidth
-    canvas.height = outputHeight
-    let ctx = canvas.getContext("2d")
-    ctx.imageSmoothingEnabled = true
-    ctx.imageSmoothingQuality = "high"
-    ctx.drawImage(renderingCanvas, 0, 0, outputWidth, outputHeight);
-    return canvas
+
+    if (legendImage) {
+      // Create Legend Canvas
+      var legendCanvas = document.createElement('canvas')
+      legendCanvas.width = legendImage.width
+      legendCanvas.height = legendImage.height
+      legendCanvas.getContext("2d").putImageData(legendImage, 0, 0)
+
+      // Create concatenation canvas
+      let concatCanvas = document.createElement('canvas')
+      concatCanvas.width = finalMapCanvas.width
+      concatCanvas.height = finalMapCanvas.height + legendCanvas.height
+
+      let ctx = concatCanvas.getContext("2d")
+      ctx.imageSmoothingEnabled = true
+      ctx.imageSmoothingQuality = "high"
+      ctx.drawImage(finalMapCanvas, 0, 0, finalMapCanvas.width, finalMapCanvas.height);
+      ctx.drawImage(legendCanvas, 0, finalMapCanvas.height, legendCanvas.width, legendCanvas.height);
+
+      return concatCanvas
+
+    } else {
+      return finalMapCanvas
+    }
   }
 
   /// Initialization
@@ -168,6 +203,69 @@ var newRenderer = function(){
 
 
   /// FUNCTIONS
+
+  ns.drawTextLegend = function(options) {
+    ns.log("Draw text legend...")
+
+    options = options || {}
+    options.legend_background_color = options.legend_background_color || "#FFF"
+    options.legend_font_family = options.legend_font_family || "Raleway"
+    options.legend_font_size = options.legend_font_size || 12 // in pt
+    options.legend_font_weight = options.legend_font_weight || 400
+    options.legend_font_color = options.legend_font_color || "#171637"
+    options.legend_line_height_ratio = options.legend_line_height_ratio || 1.666
+    options.legend_text = options.legend_text || "No legend text to display."
+    options.legend_margin_bottom = (options.legend_margin_bottom === undefined)?(6):(options.legend_margin_bottom) // in mm, space for the text etc.
+    options.legend_margin_right  = (options.legend_margin_right  === undefined)?(6):(options.legend_margin_right ) // in mm, space for the text etc.
+    options.legend_margin_left   = (options.legend_margin_left   === undefined)?(6):(options.legend_margin_left  ) // in mm, space for the text etc.
+    options.legend_margin_top    = (options.legend_margin_top    === undefined)?(6):(options.legend_margin_top   ) // in mm, space for the text etc.
+
+    var dim = ns.getRenderingPixelDimensions()
+    var ctx = ns.createCanvas().getContext("2d")
+    ns.scaleContext(ctx)
+    
+    var margin_bottom = ns.mm_to_px(options.legend_margin_bottom)
+    var margin_right  = ns.mm_to_px(options.legend_margin_right)
+    var margin_left   = ns.mm_to_px(options.legend_margin_left)
+    var margin_top    = ns.mm_to_px(options.legend_margin_top)
+
+    var lineHeight = ns.pt_to_px(options.legend_line_height_ratio * options.legend_font_size)
+
+    ns.paintAll(ctx, options.legend_background_color)
+
+    // Text style
+    ctx.lineWidth = 0;
+    ctx.fillStyle = options.legend_font_color
+    ctx.font = ns.buildContextFontString(options.legend_font_weight, ns.pt_to_pt(options.legend_font_size), options.legend_font_family)
+    
+    // Text block
+    var y = wrapText(ctx, options.legend_text, margin_left, margin_top + .3 * lineHeight, dim.w - margin_left - margin_right, lineHeight)
+
+    ns.log("...done.")
+    return ctx.getImageData(0, 0, ctx.canvas.width, y + margin_bottom)
+
+    // Internal methods
+    function wrapText(context, text, x, y, maxWidth, lineHeight) {
+      var words = text.split(' ');
+      var line = '';
+
+      for(var n = 0; n < words.length; n++) {
+        var testLine = line + words[n] + ' ';
+        var metrics = context.measureText(testLine);
+        var testWidth = metrics.width;
+        if (testWidth > maxWidth && n > 0) {
+          context.fillText(line, x, y);
+          line = words[n] + ' ';
+          y += lineHeight;
+        }
+        else {
+          line = testLine;
+        }
+      }
+      context.fillText(line, x, y);
+      return y
+    }
+  }
 
   ns.getPoissonDiscSampling = function() {
     // Cache
@@ -2511,6 +2609,14 @@ var newRenderer = function(){
 
   ns.pt_to_pt = function(d) {
     return Math.round(1000 * d * ns.settings.rendering_dpi / ( 72 * ns.settings.tile_factor )) / 1000
+  }
+
+  ns.pt_to_mm = function(d) {
+    return Math.round(1000 * d * 0.35277777777778) / 1000
+  }
+
+  ns.pt_to_px = function(d) {
+    return ns.mm_to_px(ns.pt_to_mm(d))
   }
 
   /// Connected-closeness
